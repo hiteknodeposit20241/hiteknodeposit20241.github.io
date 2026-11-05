@@ -44,7 +44,9 @@ fork 和已归档的仓库不会被规则收录。规则在 `sites.json` 的 `au
 
 ## 手动维护
 
-这些内容需要判断，改 `sites.json` 后推送：
+这些内容需要判断。日常用 Claude Code 的 `update-knowledge-graph` skill 完成，在本仓库里运行 `/update-knowledge-graph`，或者直接说想更新什么。它会先审计图谱，读真实内容后更新 `sites.json`，校验通过再发布。skill 在 `.claude/skills/update-knowledge-graph/`。
+
+也可以手动改 `sites.json` 后推送：
 
 - **知识关联**：在 `links` 里加一项，`reason` 写明两者的具体关系。新节点没有关联时只连到所属仓库。
 - **子节点**：除了 `autoChildren` 的仓库，其他仓库的子主题写在 `children` 里，填写 `id`、`title`、`description` 和 `url`。
