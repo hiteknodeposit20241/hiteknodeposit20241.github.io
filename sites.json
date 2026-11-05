@@ -91,12 +91,12 @@
       "colorLight": "#a87300",
       "repos": [
         {
-          "repo": "ai-infra-dev-skills",
+          "repo": "ai-infra-dev-skills", "readmePage": true,
           "title": "AI Infra Dev Skills",
           "description": "用于学习和贡献 AI infra 代码库的 Claude Code skills，中英双语",
           "children": [
-            {"id": "read-codebase", "title": "read-codebase", "description": "把开源代码库讲成 code-wiki 风格的 HTML 报告和 PDF", "url": "https://github.com/kzhou003/ai-infra-dev-skills/tree/main/skills/read-codebase"},
-            {"id": "practice-drills", "title": "practice-drills", "description": "为一个技术领域生成动手练习仓库", "url": "https://github.com/kzhou003/ai-infra-dev-skills/tree/main/skills/practice-drills"}
+            {"id": "read-codebase", "title": "read-codebase", "description": "把开源代码库讲成 code-wiki 风格的 HTML 报告和 PDF", "url": "https://kzhou003.github.io/ai-infra-dev-skills/"},
+            {"id": "practice-drills", "title": "practice-drills", "description": "为一个技术领域生成动手练习仓库", "url": "https://kzhou003.github.io/ai-infra-dev-skills/"}
           ]
         }
       ]
@@ -108,10 +108,10 @@
       "color": "#199e70",
       "colorLight": "#0f8a5f",
       "repos": [
-        {"repo": "awesome-post-training", "title": "Awesome Post-Training", "license": "CC0-1.0", "description": "以强化学习为主线的基础模型后训练指南，兼顾数学与系统视角"},
-        {"repo": "awesome-agentic-robotics", "title": "Awesome Agentic Robotics", "license": "CC0-1.0", "description": "面向系统的机器人全景：硬件、经典基础、仿真、自主栈、机器人学习与具身基础模型"},
-        {"repo": "awesome-coding-agent-systems", "title": "Awesome Coding Agent Systems", "description": "理解、构建和部署 coding agent 系统，覆盖从 LLM 基础到生产部署的完整流程"},
-        {"repo": "awesome-devops-agents", "title": "Awesome DevOps Agents", "license": "CC0-1.0", "description": "DevOps、SRE、AIOps、事故响应与根因分析方向的 AI agent 精选地图"}
+        {"repo": "awesome-post-training", "readmePage": true, "title": "Awesome Post-Training", "license": "CC0-1.0", "description": "以强化学习为主线的基础模型后训练指南，兼顾数学与系统视角"},
+        {"repo": "awesome-agentic-robotics", "readmePage": true, "title": "Awesome Agentic Robotics", "license": "CC0-1.0", "description": "面向系统的机器人全景：硬件、经典基础、仿真、自主栈、机器人学习与具身基础模型"},
+        {"repo": "awesome-coding-agent-systems", "readmePage": true, "title": "Awesome Coding Agent Systems", "description": "理解、构建和部署 coding agent 系统，覆盖从 LLM 基础到生产部署的完整流程"},
+        {"repo": "awesome-devops-agents", "readmePage": true, "title": "Awesome DevOps Agents", "license": "CC0-1.0", "description": "DevOps、SRE、AIOps、事故响应与根因分析方向的 AI agent 精选地图"}
       ]
     }
   ],

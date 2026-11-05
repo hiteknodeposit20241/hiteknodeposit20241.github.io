@@ -9,8 +9,11 @@
 | 文件 | 作用 |
 | --- | --- |
 | `sites.json` | 作者信息、区域、节点和知识关联，日常维护只改这里 |
-| `site/template.html` | 页面的样式和图谱交互 |
+| `site/template.html` | 图谱页面的样式和交互 |
+| `site/readme.html` | README 页面的模板 |
+| `site/theme.css`、`site/theme-boot.html`、`site/theme-toggle.js` | 两种页面共用的配色和切换逻辑 |
 | `scripts/build_directory.py` | 读取 GitHub 数据，生成最终页面 |
+| `scripts/readme_pages.py` | 把 README 处理成站内页面 |
 
 本地预览：
 
@@ -33,6 +36,7 @@ gh workflow run pages.yml -R kzhou003/kzhou003.github.io
 都改 `sites.json`，然后推送：
 
 - **添加仓库**：加到对应区域的 `repos` 里，没开 Pages 的仓库也可以加。
+- **发布 README**：在仓库条目里加 `"readmePage": true`，它的 README 就会发布到 `https://kzhou003.github.io/<仓库名>/`，不用改动那个仓库。README 里指向仓库文件的链接仍然打开 GitHub。如果那个仓库以后自己开了 Pages，这个设置会自动失效，改用它自己的网站。
 - **添加子节点**：在仓库的 `children` 里加一项，填写 `id`、`title`、`description` 和 `url`。
 - **添加知识关联**：在 `links` 里加一项，`reason` 写明两者的具体关系。
 - **隐藏站点**：把仓库名加到 `hidden` 里。

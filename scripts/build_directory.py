@@ -4,8 +4,9 @@ Usage: python scripts/build_directory.py <output-dir>
 
 sites.json holds the regions, nodes, and hand-verified knowledge links.
 site/template.html holds the page. A repo with a live Pages site links to that
-site; any other repo links to GitHub. Public Pages repos missing from sites.json
-go to a "未分类" region so new sites are never lost.
+site, a repo marked "readmePage" links to its README rendered on this site, and
+any other repo links to GitHub. Public Pages repos missing from sites.json go to
+a "未分类" region so new sites are never lost.
 
 Reads GITHUB_TOKEN from the environment if set, which raises the API rate limit.
 Any GitHub API failure aborts the build, so the last good deployment stays live.
@@ -19,25 +20,32 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from readme_pages import write_readme_page
+
 OWNER = "kzhou003"
 USER_SITE = f"{OWNER}.github.io"
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "sites.json"
-TEMPLATE = ROOT / "site" / "template.html"
+SITE = ROOT / "site"
+TEMPLATE = SITE / "template.html"
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 OTHER_REGION = {"id": "other", "title": "未分类", "subtitle": "尚未归类的站点", "color": "#8b8f9a", "colorLight": "#5f6f76"}
 
 
-def public_repos():
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": "site-directory"}
+def github_get(path, accept="application/vnd.github+json"):
+    headers = {"Accept": accept, "User-Agent": "site-directory"}
     token = os.environ.get("GITHUB_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"https://api.github.com{path}", headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as resp:
+        return resp.read().decode("utf-8")
+
+
+def public_repos():
     repos, page = [], 1
     while True:
-        url = f"https://api.github.com/users/{OWNER}/repos?type=owner&per_page=100&page={page}"
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as resp:
-            batch = json.load(resp)
+        batch = json.loads(github_get(f"/users/{OWNER}/repos?type=owner&per_page=100&page={page}"))
         repos.extend(batch)
         if len(batch) < 100:
             return {repo["name"]: repo for repo in repos}
@@ -66,7 +74,9 @@ def license_of(repo, entry):
 def hub_node(repo, entry, region_id):
     name = repo["name"]
     url, kind, title = repo["html_url"], "GitHub 仓库", name
-    if repo["has_pages"]:
+    if entry.get("readmePage") and not repo["has_pages"]:
+        url, kind = f"https://{USER_SITE}/{name}/", "网站"
+    elif repo["has_pages"]:
         site_url = f"https://{USER_SITE}/{name}/"
         site_title = page_title(site_url)
         if site_title is not None:
@@ -161,22 +171,59 @@ def region_vars(regions):
     return f':root{{{dark}}}\n  :root[data-theme="latte"]{{{light}}}'
 
 
+def shared_values(graph, author):
+    """Return the placeholders that both page templates use."""
+    read = lambda name: (SITE / name).read_text(encoding="utf-8")
+    return {
+        "__NAME__": html.escape(author["name"]),
+        "__GITHUB__": html.escape(author["github"], quote=True),
+        "__THEME_CSS__": read("theme.css") + region_vars(graph["regions"]),
+        "__THEME_BOOT__": read("theme-boot.html"),
+        "__THEME_TOGGLE__": read("theme-toggle.js"),
+    }
+
+
+def fill(page, values):
+    for key, value in values.items():
+        page = page.replace(key, value)
+    return page
+
+
+def write_readme_pages(config, repos, graph, shared, output):
+    template = (SITE / "readme.html").read_text(encoding="utf-8")
+    nodes = {node["id"]: node for node in graph["nodes"]}
+    regions = {region["id"]: region for region in graph["regions"]}
+    count = 0
+    for category in config["categories"]:
+        for entry in category["repos"]:
+            repo = repos.get(entry["repo"])
+            if entry.get("readmePage") and repo and not repo["has_pages"]:
+                node = nodes[repo["name"]]
+                path = f"/repos/{OWNER}/{repo['name']}/readme"
+                rendered = github_get(path, "application/vnd.github.html+json")
+                markdown = github_get(path, "application/vnd.github.raw")
+                page = fill(template, shared)
+                write_readme_page(page, rendered, markdown, repo, node, regions[node["region"]], output)
+                count += 1
+    return count
+
+
 def main():
     output = Path(sys.argv[1])
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
-    graph = build_graph(config, public_repos())
+    repos = public_repos()
+    graph = build_graph(config, repos)
     author = config["author"]
+    shared = shared_values(graph, author)
     data = json.dumps(graph, ensure_ascii=False).replace("</", "<\\/")
     page = TEMPLATE.read_text(encoding="utf-8")
+    page = fill(page, shared)
     for key, value in {
-        "__NAME__": html.escape(author["name"]),
         "__BIO__": html.escape(author["bio"]),
         "__AVATAR__": html.escape(author["avatar"], quote=True),
-        "__GITHUB__": html.escape(author["github"], quote=True),
         "__WEBSITE__": html.escape(author["website"], quote=True),
         "__WEBSITE_LABEL__": html.escape(author["website"].removeprefix("https://")),
         "__STATS__": f'{len(graph["nodes"])} 个节点 · {len(graph["links"])} 条关联',
-        "__REGION_VARS__": region_vars(graph["regions"]),
         "__LIST__": render_list(graph),
         "__DATA__": data,
     }.items():
@@ -184,7 +231,8 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     (output / "index.html").write_text(page, encoding="utf-8")
     (output / ".nojekyll").touch()
-    print(f"Built {len(graph['nodes'])} nodes and {len(graph['links'])} links in {len(graph['regions'])} regions")
+    readme_count = write_readme_pages(config, repos, graph, shared, output)
+    print(f"Built {len(graph['nodes'])} nodes, {len(graph['links'])} links, {readme_count} README pages")
 
 
 if __name__ == "__main__":

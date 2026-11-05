@@ -8,70 +8,9 @@
 <meta property="og:title" content="__NAME__ · 知识图谱">
 <meta property="og:description" content="练习、概览、技能和阅读清单，以及它们之间的知识关联。">
 <meta name="theme-color" id="theme-color" content="#14151a">
-<script>
-  (function () {
-    var theme = null;
-    try { theme = new URLSearchParams(location.search).get("theme") || localStorage.getItem("graph-theme"); } catch (e) {}
-    if (theme === "latte") document.documentElement.setAttribute("data-theme", "latte");
-  })();
-</script>
+__THEME_BOOT__
 <style>
-  __REGION_VARS__
-  :root {
-    color-scheme: dark;
-    --bg: #14151a;
-    --panel: rgba(29, 31, 38, .82);
-    --panel-solid: #1d1f26;
-    --line: #2c2f38;
-    --line-strong: #3d414d;
-    --text: #ece9e2;
-    --text-2: #b4b2ab;
-    --text-3: #8b8a84;
-    --heading: #ece9e2;
-    --link: #8fb8f0;
-    --focus: #8fb8f0;
-    --glow: #1b1d24;
-    --halo: #14151a;
-    --edge: #4b4f5c;
-    --edge-lit: #8b8f9a;
-    --hover: rgba(255, 255, 255, .05);
-    --pressed: rgba(255, 255, 255, .09);
-    --shadow: rgba(0, 0, 0, .35);
-    --button: #ece9e2;
-    --button-hover: #fff;
-    --button-text: #14151a;
-    --hull: .085;
-    --hull-dim: .025;
-    --latent: .72;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
-  }
-  :root[data-theme="latte"] {
-    color-scheme: light;
-    --bg: #e8f5f5;
-    --panel: rgba(255, 255, 255, .88);
-    --panel-solid: #fff;
-    --line: #c9e3e4;
-    --line-strong: #a7d7d8;
-    --text: #1f2a30;
-    --text-2: #46555c;
-    --text-3: #5f6f76;
-    --heading: #663399;
-    --link: #003366;
-    --focus: #663399;
-    --glow: #fff;
-    --halo: #f8fcfc;
-    --edge: #a9bcbf;
-    --edge-lit: #5f6f76;
-    --hover: rgba(0, 51, 102, .06);
-    --pressed: rgba(167, 215, 216, .45);
-    --shadow: rgba(0, 51, 102, .14);
-    --button: #663399;
-    --button-hover: #532a7d;
-    --button-text: #fff;
-    --hull: .12;
-    --hull-dim: .04;
-    --latent: .8;
-  }
+  __THEME_CSS__
   * { box-sizing: border-box; }
   html { background: var(--bg); -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); }
@@ -901,27 +840,6 @@ __LIST__
     data.regions.forEach(function (r) { r.button.setAttribute("aria-pressed", String(regionFocus === r.id)); });
   }
 
-  /* Theme */
-  var root = document.documentElement;
-  var themeToggle = document.getElementById("theme-toggle");
-  var themeColor = document.getElementById("theme-color");
-
-  function syncTheme() {
-    var latte = root.getAttribute("data-theme") === "latte";
-    themeToggle.textContent = latte ? "◐ 深色" : "◐ 浅色";
-    themeToggle.setAttribute("aria-label", latte ? "切换到深色配色" : "切换到浅色配色");
-    themeColor.setAttribute("content", latte ? "#a7d7d8" : "#14151a");
-  }
-
-  themeToggle.addEventListener("click", function () {
-    var latte = root.getAttribute("data-theme") !== "latte";
-    if (latte) root.setAttribute("data-theme", "latte"); else root.removeAttribute("data-theme");
-    try { localStorage.setItem("graph-theme", latte ? "latte" : "dark"); } catch (e) {}
-    if (location.search) history.replaceState(null, "", location.pathname + location.hash);
-    syncTheme();
-  });
-  syncTheme();
-
   /* Boot */
   function layout() {
     assignAnchors();
@@ -942,6 +860,9 @@ __LIST__
     }, 120);
   });
 })();
+</script>
+<script>
+__THEME_TOGGLE__
 </script>
 </body>
 </html>

@@ -1,0 +1,11 @@
+<script>
+  (function () {
+    var theme = null;
+    try {
+      theme = new URLSearchParams(location.search).get("theme");
+      if (theme === "latte" || theme === "dark") localStorage.setItem("graph-theme", theme);
+      else theme = localStorage.getItem("graph-theme");
+    } catch (e) {}
+    if (theme === "latte") document.documentElement.setAttribute("data-theme", "latte");
+  })();
+</script>
