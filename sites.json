@@ -1,0 +1,45 @@
+{
+  "hidden": [],
+  "categories": [
+    {
+      "title": "Dev Skills",
+      "subtitle": "开发用的 skills",
+      "repos": [
+        {"repo": "ai-infra-dev-skills", "description": "用于学习和贡献 AI infra 代码库的 Claude Code skills，中英双语"}
+      ]
+    },
+    {
+      "title": "Awesome Lists",
+      "subtitle": "阅读与跟踪",
+      "repos": [
+        {"repo": "awesome-post-training", "description": "以强化学习为主线的基础模型后训练指南，兼顾数学与系统视角"},
+        {"repo": "awesome-agentic-robotics", "description": "面向系统的机器人全景：硬件、经典基础、仿真、自主栈、机器人学习与具身基础模型"},
+        {"repo": "awesome-coding-agent-systems", "description": "理解、构建和部署 coding agent 系统，覆盖从 LLM 基础到生产部署的完整流程"},
+        {"repo": "awesome-devops-agents", "description": "DevOps、SRE、AIOps、事故响应与根因分析方向的 AI agent 精选地图"}
+      ]
+    },
+    {
+      "title": "Deep Drills",
+      "subtitle": "深度练习与开源贡献",
+      "repos": [
+        {"repo": "ai-compiler-drills"},
+        {"repo": "gpu-kernel-drills"},
+        {"repo": "nano-vllm-omni-drills", "description": "26 道一小时练习，逐个实现多模态（Qwen3-Omni 风格）推理服务系统的核心机制"}
+      ]
+    },
+    {
+      "title": "Overviews",
+      "subtitle": "查漏补缺，准备面试",
+      "repos": [
+        {"repo": "inference-serving-overview"}
+      ]
+    },
+    {
+      "title": "Adhoc Drills",
+      "subtitle": "日常学习整理",
+      "repos": [
+        {"repo": "adhoc-lean-grills"}
+      ]
+    }
+  ]
+}
