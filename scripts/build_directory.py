@@ -1,10 +1,11 @@
-"""Generate the site directory from sites.json and the GitHub API.
+"""Generate the knowledge-graph directory from sites.json and the GitHub API.
 
 Usage: python scripts/build_directory.py <output-dir>
 
-Each repo listed in sites.json appears under its category. A repo with a live
-Pages site links to that site; any other repo links to GitHub. Public Pages
-repos missing from sites.json appear under "未分类" so new sites are never lost.
+sites.json holds the regions, nodes, and hand-verified knowledge links.
+site/template.html holds the page. A repo with a live Pages site links to that
+site; any other repo links to GitHub. Public Pages repos missing from sites.json
+go to a "未分类" region so new sites are never lost.
 
 Reads GITHUB_TOKEN from the environment if set, which raises the API rate limit.
 Any GitHub API failure aborts the build, so the last good deployment stays live.
@@ -20,42 +21,11 @@ from pathlib import Path
 
 OWNER = "kzhou003"
 USER_SITE = f"{OWNER}.github.io"
-CONFIG = Path(__file__).resolve().parents[1] / "sites.json"
+ROOT = Path(__file__).resolve().parents[1]
+CONFIG = ROOT / "sites.json"
+TEMPLATE = ROOT / "site" / "template.html"
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
-
-PAGE = """<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{owner} 的站点</title>
-<style>
-  :root {{ --bg: #fbfaf7; --fg: #24221e; --muted: #77726a; --line: #e4e0d8; --link: #1f5fa8; }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{ --bg: #191816; --fg: #ece9e2; --muted: #9a958c; --line: #33302b; --link: #7db3ea; }}
-  }}
-  body {{ margin: 0; background: var(--bg); color: var(--fg);
-         font: 16px/1.6 -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif; }}
-  main {{ max-width: 680px; margin: 0 auto; padding: 56px 16px; }}
-  h1 {{ font-size: 28px; margin: 0 0 8px; }}
-  h2 {{ font-size: 18px; margin: 40px 0 10px; }}
-  h2 small {{ color: var(--muted); font-size: 13px; font-weight: 400; margin-left: 8px; }}
-  ul {{ list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }}
-  li {{ padding: 14px 0; border-bottom: 1px solid var(--line); }}
-  a {{ color: var(--link); text-decoration: none; font-weight: 600; overflow-wrap: anywhere; }}
-  a:hover {{ text-decoration: underline; }}
-  p {{ margin: 2px 0 0; }}
-  .meta {{ color: var(--muted); font-size: 13px; }}
-</style>
-</head>
-<body>
-<main>
-<h1>{owner} 的站点</h1>
-{sections}
-</main>
-</body>
-</html>
-"""
+OTHER_REGION = {"id": "other", "title": "未分类", "subtitle": "尚未归类的站点", "color": "#8b8f9a"}
 
 
 def public_repos():
@@ -86,64 +56,127 @@ def page_title(url):
     return html.unescape(" ".join(match.group(1).split())) if match else ""
 
 
-def render_item(repo, description):
+def license_of(repo, entry):
+    if entry.get("license"):
+        return entry["license"]
+    spdx = (repo.get("license") or {}).get("spdx_id")
+    return spdx if spdx and spdx != "NOASSERTION" else "未声明"
+
+
+def hub_node(repo, entry, region_id):
     name = repo["name"]
-    url = repo["html_url"]
-    title = name
-    kind = "GitHub 仓库"
+    url, kind, title = repo["html_url"], "GitHub 仓库", name
     if repo["has_pages"]:
         site_url = f"https://{USER_SITE}/{name}/"
         site_title = page_title(site_url)
         if site_title is not None:
-            url, title, kind = site_url, site_title or name, "网站"
-    item = f'<li><a href="{html.escape(url, quote=True)}">{html.escape(title)}</a>'
-    if description:
-        item += f"\n<p>{html.escape(description)}</p>"
-    meta = f"{html.escape(name)} · {kind} · 更新于 {repo['pushed_at'][:10]}"
-    return f'{item}\n<p class="meta">{meta}</p></li>'
+            url, kind, title = site_url, "网站", site_title or name
+    return {
+        "id": name,
+        "title": entry.get("title") or title,
+        "region": region_id,
+        "hub": True,
+        "url": url,
+        "kind": kind,
+        "description": entry.get("description") or repo["description"] or "",
+        "license": license_of(repo, entry),
+        "updated": repo["pushed_at"][:10],
+    }
 
 
-def render_section(title, subtitle, entries):
-    entries = sorted(entries, key=lambda entry: entry[0]["pushed_at"], reverse=True)
-    items = "\n".join(render_item(repo, description) for repo, description in entries)
-    small = f"<small>{html.escape(subtitle)}</small>" if subtitle else ""
-    return f"<h2>{html.escape(title)}{small}</h2>\n<ul>\n{items}\n</ul>"
-
-
-def main():
-    output = Path(sys.argv[1])
-    config = json.loads(CONFIG.read_text(encoding="utf-8"))
-    repos = public_repos()
+def build_graph(config, repos):
+    regions, nodes = [], []
     placed = {USER_SITE, *config["hidden"]}
-    sections = []
-    count = 0
-
     for category in config["categories"]:
-        entries = []
+        count = len(nodes)
         for entry in category["repos"]:
             name = entry["repo"]
             placed.add(name)
             if name not in repos:
                 print(f"Skipping {name}: not a public repo of {OWNER}")
                 continue
-            entries.append((repos[name], entry.get("description") or repos[name]["description"]))
-        if entries:
-            sections.append(render_section(category["title"], category.get("subtitle"), entries))
-            count += len(entries)
+            hub = hub_node(repos[name], entry, category["id"])
+            nodes.append(hub)
+            for child in entry.get("children", []):
+                nodes.append({
+                    **child,
+                    "region": category["id"],
+                    "hub": False,
+                    "parent": name,
+                    "kind": hub["kind"],
+                    "license": hub["license"],
+                    "updated": hub["updated"],
+                })
+        if len(nodes) > count:
+            regions.append({key: category[key] for key in ("id", "title", "subtitle", "color")})
 
     unsorted_repos = [
-        (repo, repo["description"]) for name, repo in repos.items()
-        if repo["has_pages"] and name not in placed
+        repo for name, repo in repos.items() if repo["has_pages"] and name not in placed
     ]
     if unsorted_repos:
-        sections.append(render_section("未分类", "", unsorted_repos))
-        count += len(unsorted_repos)
+        regions.append(OTHER_REGION)
+        nodes.extend(hub_node(repo, {}, OTHER_REGION["id"]) for repo in unsorted_repos)
 
+    ids = {node["id"] for node in nodes}
+    links = []
+    for link in config["links"]:
+        if link["source"] in ids and link["target"] in ids:
+            links.append(link)
+        else:
+            print(f"Skipping link {link['source']} -> {link['target']}: unknown node")
+    return {"regions": regions, "nodes": nodes, "links": links}
+
+
+def render_list(graph):
+    """Render the full static index, which also serves readers without JavaScript."""
+    sections = []
+    for region in graph["regions"]:
+        hubs = [node for node in graph["nodes"] if node["region"] == region["id"] and node["hub"]]
+        hubs.sort(key=lambda node: node["updated"], reverse=True)
+        items = []
+        for hub in hubs:
+            children = [node for node in graph["nodes"] if node.get("parent") == hub["id"]]
+            child_links = "".join(
+                f'<a href="{html.escape(child["url"], quote=True)}">{html.escape(child["title"])}</a>'
+                for child in children
+            )
+            items.append(
+                f'<li><a class="item-title" href="{html.escape(hub["url"], quote=True)}">{html.escape(hub["title"])}</a>'
+                + (f'<p>{html.escape(hub["description"])}</p>' if hub["description"] else "")
+                + (f'<div class="item-children">{child_links}</div>' if child_links else "")
+                + f'<p class="item-meta">{html.escape(hub["kind"])} · {html.escape(hub["license"])}'
+                + f' · 更新于 {hub["updated"]}</p></li>'
+            )
+        sections.append(
+            f'<section><h3><span class="dot" style="--c:{region["color"]}"></span>{html.escape(region["title"])}'
+            f'<small>{html.escape(region["subtitle"])}</small></h3><ul>{"".join(items)}</ul></section>'
+        )
+    return "\n".join(sections)
+
+
+def main():
+    output = Path(sys.argv[1])
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    graph = build_graph(config, public_repos())
+    author = config["author"]
+    data = json.dumps(graph, ensure_ascii=False).replace("</", "<\\/")
+    page = TEMPLATE.read_text(encoding="utf-8")
+    for key, value in {
+        "__NAME__": html.escape(author["name"]),
+        "__BIO__": html.escape(author["bio"]),
+        "__AVATAR__": html.escape(author["avatar"], quote=True),
+        "__GITHUB__": html.escape(author["github"], quote=True),
+        "__WEBSITE__": html.escape(author["website"], quote=True),
+        "__WEBSITE_LABEL__": html.escape(author["website"].removeprefix("https://")),
+        "__STATS__": f'{len(graph["nodes"])} 个节点 · {len(graph["links"])} 条关联',
+        "__LIST__": render_list(graph),
+        "__DATA__": data,
+    }.items():
+        page = page.replace(key, value)
     output.mkdir(parents=True, exist_ok=True)
-    page = PAGE.format(owner=OWNER, sections="\n".join(sections))
     (output / "index.html").write_text(page, encoding="utf-8")
     (output / ".nojekyll").touch()
-    print(f"Listed {count} sites in {len(sections)} sections")
+    print(f"Built {len(graph['nodes'])} nodes and {len(graph['links'])} links in {len(graph['regions'])} regions")
 
 
 if __name__ == "__main__":

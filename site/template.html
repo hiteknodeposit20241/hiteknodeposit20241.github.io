@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__NAME__ · 知识图谱</title>
+<meta name="description" content="__NAME__ 的学习地图：练习、概览、技能和阅读清单，以及它们之间的知识关联。">
+<meta property="og:title" content="__NAME__ · 知识图谱">
+<meta property="og:description" content="练习、概览、技能和阅读清单，以及它们之间的知识关联。">
+<meta name="theme-color" content="#14151a">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14151a;
+    --panel: rgba(29, 31, 38, .82);
+    --panel-solid: #1d1f26;
+    --line: #2c2f38;
+    --line-strong: #3d414d;
+    --text: #ece9e2;
+    --text-2: #b4b2ab;
+    --text-3: #8b8a84;
+    --link: #8fb8f0;
+    --focus: #8fb8f0;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  h1, h2, h3, p { margin: 0; }
+  .dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+
+  .stage { position: relative; height: 100vh; height: 100svh; min-height: 620px; overflow: hidden;
+           background: radial-gradient(ellipse 80% 70% at 58% 42%, #1b1d24 0%, var(--bg) 72%); }
+  #graph { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y;
+           cursor: grab; user-select: none; -webkit-user-select: none; }
+  #graph.panning { cursor: grabbing; }
+
+  .intro { position: absolute; z-index: 2; top: 24px; left: 24px; width: 292px; padding: 18px;
+           background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+           -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .author { display: flex; gap: 12px; align-items: center; }
+  .author img { width: 44px; height: 44px; border-radius: 50%; background: var(--line); }
+  .author h1 { font-size: 18px; line-height: 1.3; font-weight: 650; }
+  .author p { color: var(--text-3); font-size: 12px; }
+  .bio { color: var(--text-2); font-size: 13px; line-height: 1.5; margin-top: 12px; }
+  .profile-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 13px; }
+
+  .legend { margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); list-style: none; }
+  .legend button { display: flex; align-items: center; gap: 10px; padding: 5px 8px; margin: 0 -8px;
+                   width: calc(100% + 16px); border-radius: 6px; text-align: left; line-height: 1.35; }
+  .legend button:hover { background: rgba(255, 255, 255, .05); }
+  .legend button[aria-pressed="true"] { background: rgba(255, 255, 255, .09); }
+  .legend strong { display: block; font-size: 13px; font-weight: 600; }
+  .legend small { display: block; color: var(--text-3); font-size: 12px; }
+  .legend .count { margin-left: auto; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  .controls { position: absolute; z-index: 2; right: 24px; bottom: 24px; display: flex; gap: 6px; }
+  .controls button { width: 36px; height: 36px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line);
+                     color: var(--text-2); font-size: 17px; line-height: 1; }
+  .controls button:hover { color: var(--text); border-color: var(--line-strong); }
+  .hint { position: absolute; z-index: 1; left: 24px; bottom: 24px; color: var(--text-3); font-size: 12px; }
+  .scroll-cue { position: absolute; z-index: 1; left: 50%; bottom: 22px; transform: translateX(-50%);
+                color: var(--text-2); font-size: 13px; padding: 5px 14px; border-radius: 999px;
+                background: var(--panel); border: 1px solid var(--line); white-space: nowrap; }
+  .scroll-cue:hover { text-decoration: none; color: var(--text); border-color: var(--line-strong); }
+
+  .region-hull { opacity: .085; stroke-linejoin: round; stroke-linecap: round; transition: opacity .18s; }
+  .region-label { pointer-events: none; transition: opacity .18s; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+  .region-label .name { fill: var(--text); font-weight: 650; }
+  .region-label .sub { fill: var(--text-2); }
+
+  .edge { fill: none; transition: opacity .18s; pointer-events: none; }
+  .edge.tree { stroke: #4b4f5c; stroke-width: 1; }
+  .edge.latent { stroke-width: 1.5; opacity: .72; }
+  .edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: help; pointer-events: stroke; }
+
+  .node { cursor: pointer; touch-action: none; transition: opacity .18s; outline: none; }
+  .node circle.mark { stroke: var(--bg); stroke-width: 2; }
+  .node circle.halo { opacity: 0; fill: none; stroke-width: 2; transition: opacity .15s; pointer-events: none; }
+  .node circle.hit { fill: transparent; }
+  .node:hover circle.halo, .node:focus-visible circle.halo, .node.selected circle.halo { opacity: 1; }
+  .node text { pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round;
+               fill: var(--text-2); text-anchor: middle; }
+  .node.hub text { fill: var(--text); font-weight: 600; }
+  .node.child-label-hidden text { opacity: 0; }
+  .node.neighbor text, .node:hover text, .node.selected text { opacity: 1; fill: var(--text); }
+
+  svg.focused .node:not(.lit) { opacity: .16; }
+  svg.focused .edge:not(.lit) { opacity: .06; }
+  svg.focused .edge.latent.lit { opacity: 1; stroke-width: 2.2; }
+  svg.focused .edge.tree.lit { stroke: #8b8f9a; }
+  svg.focused .region-hull:not(.lit) { opacity: .025; }
+  svg.focused .region-label:not(.lit) { opacity: .35; }
+
+  .tooltip { position: fixed; z-index: 5; max-width: 280px; padding: 8px 11px; pointer-events: none; opacity: 0;
+             background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 8px;
+             font-size: 13px; line-height: 1.45; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); transition: opacity .1s; }
+  .tooltip.visible { opacity: 1; }
+  .tooltip b { display: block; font-weight: 600; }
+  .tooltip span { color: var(--text-2); }
+
+  .detail { position: absolute; z-index: 3; top: 24px; right: 24px; width: 340px; max-height: calc(100% - 96px);
+            display: flex; flex-direction: column; background: var(--panel-solid); border: 1px solid var(--line);
+            border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, .35); overflow: hidden;
+            transform: translateX(12px); opacity: 0; visibility: hidden; transition: opacity .16s, transform .16s, visibility .16s; }
+  .detail.open { transform: none; opacity: 1; visibility: visible; }
+  .detail-body { padding: 18px; overflow-y: auto; }
+  .detail-region { display: flex; align-items: center; gap: 8px; padding-right: 32px; color: var(--text-2); font-size: 12px; }
+  .detail h2 { margin-top: 10px; font-size: 19px; line-height: 1.35; font-weight: 650; overflow-wrap: anywhere; }
+  .detail-desc { margin-top: 8px; color: var(--text-2); font-size: 14px; line-height: 1.6; }
+  .detail-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 14px 0 0; font-size: 12px; }
+  .detail-meta dt { color: var(--text-3); }
+  .detail-meta dd { margin: 0; color: var(--text-2); }
+  .open-link { display: block; margin-top: 16px; padding: 8px 12px; border-radius: 8px; text-align: center; font-weight: 600;
+               font-size: 14px; color: #14151a; background: var(--text); }
+  .open-link:hover { background: #fff; text-decoration: none; }
+  .close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 6px; color: var(--text-3); font-size: 18px; line-height: 1; }
+  .close:hover { color: var(--text); background: rgba(255, 255, 255, .07); }
+  .relations { margin-top: 20px; }
+  .relations h3 { font-size: 12px; font-weight: 600; color: var(--text-3); margin-bottom: 6px; }
+  .relations ul { list-style: none; margin: 0; padding: 0; }
+  .relations button { display: block; padding: 8px 10px; margin: 0 -10px; width: calc(100% + 20px); border-radius: 7px; text-align: left; }
+  .relations button:hover { background: rgba(255, 255, 255, .06); }
+  .relations .rel-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; line-height: 1.4; }
+  .relations .rel-reason { display: block; margin: 2px 0 0 18px; color: var(--text-2); font-size: 13px; line-height: 1.5; }
+
+  .index { max-width: 1120px; margin: 0 auto; padding: 72px 24px 48px; }
+  .index > h2 { font-size: 26px; font-weight: 650; }
+  .index > p { color: var(--text-2); margin-top: 4px; }
+  .index-grid { columns: 2; column-gap: 56px; margin-top: 32px; }
+  .index-grid section { break-inside: avoid; padding-bottom: 32px; }
+  .index-grid h3 { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 650; margin-bottom: 8px; }
+  .index-grid h3 small { color: var(--text-3); font-size: 13px; font-weight: 400; }
+  .index-grid ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .index-grid li { padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .item-title { font-weight: 600; overflow-wrap: anywhere; }
+  .index-grid li p { color: var(--text-2); font-size: 14px; margin-top: 2px; }
+  .index-grid li p.item-meta { color: var(--text-3); font-size: 12px; margin-top: 5px; }
+  .item-children { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 5px; font-size: 13px; }
+
+  footer { border-top: 1px solid var(--line); color: var(--text-3); font-size: 13px; }
+  .footer-inner { max-width: 1120px; margin: 0 auto; padding: 24px 24px calc(28px + env(safe-area-inset-bottom));
+                  display: flex; flex-wrap: wrap; gap: 6px 24px; justify-content: space-between; }
+  .noscript-note { display: none; }
+
+  @media (max-width: 860px) {
+    .stage { height: auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; background: var(--bg); }
+    .intro { position: static; width: auto; margin: 16px 16px 0; }
+    .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+    .legend button { margin: 0; width: 100%; padding: 6px 4px; }
+    .legend .count { display: none; }
+    #graph { position: relative; inset: auto; height: 168vw; min-height: 560px; max-height: 900px; }
+    .graph-wrap { position: relative; }
+    .controls { right: 16px; bottom: 16px; }
+    .hint, .scroll-cue { display: none; }
+    .detail { position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 68svh;
+              border-radius: 14px 14px 0 0; border-width: 1px 0 0; transform: translateY(16px); }
+    .detail-body { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+    .index { padding: 40px 16px 24px; }
+    .index-grid { columns: 1; }
+    .footer-inner { padding-left: 16px; padding-right: 16px; }
+  }
+  @media (min-width: 861px) { .graph-wrap { display: contents; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="stage">
+    <div class="intro">
+      <div class="author">
+        <img src="__AVATAR__" alt="" width="44" height="44">
+        <div>
+          <h1>__NAME__</h1>
+          <p>__STATS__</p>
+        </div>
+      </div>
+      <p class="bio">__BIO__</p>
+      <div class="profile-links">
+        <a href="__GITHUB__">GitHub</a>
+        <a href="__WEBSITE__">__WEBSITE_LABEL__</a>
+      </div>
+      <ul class="legend" id="legend" aria-label="按区域高亮"></ul>
+    </div>
+
+    <div class="graph-wrap">
+      <svg id="graph" role="group" aria-label="知识图谱。五个区域的内容通过知识关联相互连接，完整内容见下方列表。"></svg>
+      <div class="controls" aria-label="视图控制">
+        <button id="zoom-in" type="button" aria-label="放大" title="放大">+</button>
+        <button id="zoom-out" type="button" aria-label="缩小" title="缩小">−</button>
+        <button id="zoom-fit" type="button" aria-label="适应窗口" title="适应窗口">⤢</button>
+      </div>
+    </div>
+    <p class="hint">点击节点查看关联 · 拖动节点 · 双指捏合或 Ctrl + 滚轮缩放</p>
+    <a class="scroll-cue" href="#index">浏览全部内容 ↓</a>
+
+    <aside class="detail" id="detail" aria-live="polite" aria-label="节点详情">
+      <button class="close" id="detail-close" type="button" aria-label="关闭详情">×</button>
+      <div class="detail-body" id="detail-body"></div>
+    </aside>
+  </div>
+
+  <div class="index" id="index">
+    <h2>全部内容</h2>
+    <p>按区域列出的完整目录。</p>
+    <div class="index-grid">
+__LIST__
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2026 <a href="__GITHUB__">__NAME__</a></span>
+    <span>本站代码采用 <a href="https://github.com/kzhou003/kzhou003.github.io/blob/main/LICENSE">MIT License</a>，各项目的 license 以其仓库为准。</span>
+  </div>
+</footer>
+
+<div class="tooltip" id="tooltip" role="status"></div>
+<script type="application/json" id="graph-data">__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("graph-data").textContent);
+  var svg = document.getElementById("graph");
+  var tooltip = document.getElementById("tooltip");
+  var detail = document.getElementById("detail");
+  var detailBody = document.getElementById("detail-body");
+  var NS = "http://www.w3.org/2000/svg";
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var byId = {}, regionById = {};
+  data.regions.forEach(function (r) { regionById[r.id] = r; });
+  data.nodes.forEach(function (n, i) { n.index = i; n.deg = 0; byId[n.id] = n; });
+
+  var edges = [];
+  data.nodes.forEach(function (n) {
+    if (n.parent) edges.push({ a: byId[n.parent], b: n, tree: true });
+  });
+  data.links.forEach(function (l) {
+    edges.push({ a: byId[l.source], b: byId[l.target], tree: false, reason: l.reason });
+  });
+  edges.forEach(function (e) {
+    e.a.deg++; e.b.deg++;
+  });
+  data.nodes.forEach(function (n) {
+    n.r = n.hub ? 9 + Math.min(n.deg, 12) * .5 : 4.5 + Math.min(n.deg, 5) * .7;
+  });
+
+  function isPortrait() { return window.innerWidth <= 860; }
+
+  /* Fixed slots: the first three regions lead the map, the rest sit below. */
+  var WIDE = { w: 1760, h: 1120, labelScale: .72, slots: [[.09, .30], [.41, .30], [.82, .30], [.25, .84], [.70, .86], [.47, .92]] };
+  var TALL = { w: 900, h: 1760, labelScale: .4, slots: [[.24, .07], [.5, .35], [.5, .635], [.76, .07], [.5, .885], [.2, .97]] };
+  var world;
+
+  function assignAnchors() {
+    world = isPortrait() ? TALL : WIDE;
+    data.regions.forEach(function (r, i) {
+      var s = world.slots[Math.min(i, world.slots.length - 1)];
+      r.ax = s[0] * world.w;
+      r.ay = s[1] * world.h;
+    });
+  }
+
+  /* Label size estimate in world units, so collisions keep the text clear. */
+  function measure(n) {
+    var size = n.hub ? 13 : 11.5, width = 0, k = world.labelScale;
+    var hidden = !n.hub && isPortrait();
+    for (var i = 0; i < n.title.length && !hidden; i++) {
+      width += n.title.charCodeAt(i) > 255 ? size : size * .58;
+    }
+    n.w = Math.max(width / k + 16, n.r * 2 + 14);
+    n.top = n.r + 6;
+    n.bottom = n.r + (hidden ? 8 : (8 + size * 1.3) / k);
+  }
+
+  function seed() {
+    data.regions.forEach(function (r) {
+      var hubs = r.members.filter(function (n) { return n.hub; });
+      var spread = hubs.length > 3 ? 142 : 225;
+      if (isPortrait()) spread = hubs.length > 3 ? 110 : 215;
+      hubs.forEach(function (hub, i) {
+        var angle = -Math.PI / 2 + i * 2 * Math.PI / hubs.length;
+        var radius = hubs.length > 1 ? spread : 0;
+        hub.ax = r.ax + Math.cos(angle) * radius;
+        hub.ay = r.ay + Math.sin(angle) * radius;
+        hub.x = hub.ax; hub.y = hub.ay;
+        var kids = data.nodes.filter(function (n) { return n.parent === hub.id; });
+        hub.ring = Math.max(112, kids.length * 21);
+        kids.forEach(function (kid, j) {
+          var a = -Math.PI / 2 + (j + .5) * 2 * Math.PI / kids.length + i;
+          kid.x = hub.x + Math.cos(a) * hub.ring;
+          kid.y = hub.y + Math.sin(a) * hub.ring;
+        });
+      });
+    });
+    data.nodes.forEach(function (n) { n.vx = n.vy = 0; measure(n); });
+  }
+
+  function collide(strength) {
+    var nodes = data.nodes;
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = i + 1; j < nodes.length; j++) {
+        var a = nodes[i], b = nodes[j];
+        var ox = Math.min(a.x + a.w / 2, b.x + b.w / 2) - Math.max(a.x - a.w / 2, b.x - b.w / 2);
+        var oy = Math.min(a.y + a.bottom, b.y + b.bottom) - Math.max(a.y - a.top, b.y - b.top);
+        if (ox <= 0 || oy <= 0) continue;
+        var horizontal = ox < oy, amount = Math.min(ox, oy) * strength / 2;
+        var sign = (horizontal ? b.x - a.x : b.y - a.y) < 0 ? -1 : 1;
+        var ax = horizontal ? amount * sign : 0, ay = horizontal ? 0 : amount * sign;
+        if (!a.fixed) { a.x -= ax; a.y -= ay; }
+        if (!b.fixed) { b.x += ax; b.y += ay; }
+      }
+    }
+  }
+
+  function tick(alpha) {
+    var nodes = data.nodes, i, j, a, b, dx, dy, d2, d, f;
+    for (i = 0; i < nodes.length; i++) {
+      a = nodes[i];
+      if (a.hub) {
+        a.vx += (a.ax - a.x) * .07 * alpha;
+        a.vy += (a.ay - a.y) * .07 * alpha;
+      }
+      for (j = i + 1; j < nodes.length; j++) {
+        b = nodes[j];
+        dx = b.x - a.x; dy = b.y - a.y;
+        d2 = dx * dx + dy * dy || 1;
+        d = Math.sqrt(d2);
+        if (d < 420) {
+          f = (a.parent && a.parent === b.parent ? 3400 : 1500) * alpha / d2;
+          a.vx -= dx / d * f; a.vy -= dy / d * f;
+          b.vx += dx / d * f; b.vy += dy / d * f;
+        }
+      }
+    }
+    edges.forEach(function (e) {
+      var rest = e.tree ? e.a.ring : 300;
+      var strength = e.tree ? .16 : (e.a.region === e.b.region ? .006 : .0016);
+      dx = e.b.x - e.a.x; dy = e.b.y - e.a.y;
+      d = Math.sqrt(dx * dx + dy * dy) || 1;
+      f = (d - rest) * strength * alpha;
+      e.a.vx += dx / d * f; e.a.vy += dy / d * f;
+      e.b.vx -= dx / d * f; e.b.vy -= dy / d * f;
+    });
+    nodes.forEach(function (n) {
+      if (n.fixed) { n.vx = n.vy = 0; return; }
+      n.vx *= .62; n.vy *= .62;
+      n.x += n.vx; n.y += n.vy;
+    });
+    collide(.5);
+  }
+
+  function settle() {
+    var i;
+    for (i = 0; i < 420; i++) tick(1 - i / 520);
+    for (i = 0; i < 200; i++) collide(.7);
+  }
+
+  /* DOM */
+  function el(name, attrs, parent) {
+    var node = document.createElementNS(NS, name);
+    Object.keys(attrs || {}).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  var defs = el("defs", {}, svg);
+  var viewport = el("g", {}, svg);
+  var hullLayer = el("g", {}, viewport);
+  var edgeLayer = el("g", {}, viewport);
+  var hitLayer = el("g", {}, viewport);
+  var nodeLayer = el("g", {}, viewport);
+  var regionLabelLayer = el("g", {}, viewport);
+
+  data.regions.forEach(function (r) {
+    r.members = data.nodes.filter(function (n) { return n.region === r.id; });
+    r.hull = el("path", { "class": "region-hull", fill: r.color, stroke: r.color }, hullLayer);
+    r.label = el("text", { "class": "region-label" }, regionLabelLayer);
+    r.labelName = el("tspan", { "class": "name" }, r.label);
+    r.labelSub = el("tspan", { "class": "sub", dx: 8 }, r.label);
+    r.labelName.textContent = r.title;
+    r.labelSub.textContent = r.subtitle;
+  });
+
+  edges.forEach(function (e, i) {
+    var cls = e.tree ? "edge tree" : "edge latent";
+    e.path = el("path", { "class": cls }, edgeLayer);
+    if (!e.tree) {
+      e.gradient = el("linearGradient", { id: "edge-" + i, gradientUnits: "userSpaceOnUse" }, defs);
+      el("stop", { offset: "0%", "stop-color": regionById[e.a.region].color }, e.gradient);
+      el("stop", { offset: "100%", "stop-color": regionById[e.b.region].color }, e.gradient);
+      e.path.setAttribute("stroke", "url(#edge-" + i + ")");
+      e.hit = el("path", { "class": "edge-hit" }, hitLayer);
+      e.hit.addEventListener("pointerenter", function (ev) { focusEdge(e, ev); });
+      e.hit.addEventListener("pointermove", moveTooltip);
+      e.hit.addEventListener("pointerleave", clearHover);
+      e.hit.addEventListener("click", function (ev) { ev.stopPropagation(); select(e.b.id); });
+    }
+  });
+
+  data.nodes.forEach(function (n) {
+    var color = regionById[n.region].color;
+    n.el = el("g", {
+      "class": "node" + (n.hub ? " hub" : ""),
+      tabindex: 0, role: "button",
+      "aria-label": n.title + "，" + regionById[n.region].title
+    }, nodeLayer);
+    n.halo = el("circle", { "class": "halo", r: n.r + 5, stroke: color }, n.el);
+    n.hit = el("circle", { "class": "hit", r: Math.max(n.r + 8, 18) }, n.el);
+    n.mark = el("circle", { "class": "mark", r: n.r, fill: color }, n.el);
+    n.text = el("text", {}, n.el);
+    n.text.textContent = n.title;
+
+    n.el.addEventListener("pointerenter", function (ev) {
+      if (dragging || ev.pointerType === "touch") return;
+      focusNodes(neighborhood(n.id));
+      showTooltip("<b></b><span></span>", n.title, regionById[n.region].title + " · " + relationCount(n) + " 条关联", ev);
+    });
+    n.el.addEventListener("pointermove", moveTooltip);
+    n.el.addEventListener("pointerleave", clearHover);
+    n.el.addEventListener("focus", function () { focusNodes(neighborhood(n.id)); });
+    n.el.addEventListener("blur", clearHover);
+    n.el.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(n.id); }
+    });
+    n.el.addEventListener("pointerdown", function (ev) { startDrag(ev, n); });
+  });
+
+  function neighbors(id) {
+    var out = [];
+    edges.forEach(function (e) {
+      if (e.a.id === id) out.push({ node: e.b, edge: e });
+      if (e.b.id === id) out.push({ node: e.a, edge: e });
+    });
+    return out;
+  }
+  function neighborhood(id) {
+    var set = {}; set[id] = true;
+    neighbors(id).forEach(function (x) { set[x.node.id] = true; });
+    return set;
+  }
+  function relationCount(n) {
+    return neighbors(n.id).filter(function (x) { return !x.edge.tree; }).length;
+  }
+
+  /* Geometry */
+  function hullOf(points) {
+    var p = points.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    if (p.length < 3) return p;
+    function cross(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+    var lower = [], upper = [], i;
+    for (i = 0; i < p.length; i++) {
+      while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], p[i]) <= 0) lower.pop();
+      lower.push(p[i]);
+    }
+    for (i = p.length - 1; i >= 0; i--) {
+      while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], p[i]) <= 0) upper.pop();
+      upper.push(p[i]);
+    }
+    return lower.slice(0, -1).concat(upper.slice(0, -1));
+  }
+
+  function curve(e) {
+    if (e.tree) return "M" + e.a.x + " " + e.a.y + "L" + e.b.x + " " + e.b.y;
+    var mx = (e.a.x + e.b.x) / 2, my = (e.a.y + e.b.y) / 2;
+    var dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
+    var bend = .1;
+    return "M" + e.a.x + " " + e.a.y + "Q" + (mx - dy * bend) + " " + (my + dx * bend) + " " + e.b.x + " " + e.b.y;
+  }
+
+  function draw() {
+    edges.forEach(function (e) {
+      var d = curve(e);
+      e.path.setAttribute("d", d);
+      if (e.hit) {
+        e.hit.setAttribute("d", d);
+        e.gradient.setAttribute("x1", e.a.x); e.gradient.setAttribute("y1", e.a.y);
+        e.gradient.setAttribute("x2", e.b.x); e.gradient.setAttribute("y2", e.b.y);
+      }
+    });
+    data.nodes.forEach(function (n) {
+      n.el.setAttribute("transform", "translate(" + n.x.toFixed(1) + " " + n.y.toFixed(1) + ")");
+    });
+    data.regions.forEach(function (r) {
+      var pad = 64;
+      var hull = hullOf(r.members.map(function (n) { return [n.x, n.y]; }));
+      r.hull.setAttribute("d", "M" + hull.map(function (p) { return p.join(" "); }).join("L") + "Z");
+      r.hull.setAttribute("stroke-width", pad * 2);
+      var xs = r.members.map(function (n) { return n.x; });
+      var ys = r.members.map(function (n) { return n.y; });
+      var left = Math.min.apply(null, xs), right = Math.max.apply(null, xs);
+      r.labelX = (left + right) / 2;
+      r.labelY = Math.min.apply(null, ys) - pad + 2;
+    });
+    drawScaled();
+  }
+
+  /* View: text keeps a constant screen size however far the map is zoomed. */
+  var view = { k: 1, x: 0, y: 0 }, target = null;
+
+  function applyView() {
+    viewport.setAttribute("transform", "translate(" + view.x + " " + view.y + ") scale(" + view.k + ")");
+    drawScaled();
+  }
+
+  function drawScaled() {
+    var k = view.k, phone = isPortrait();
+    var hideChildLabels = k < (phone ? .7 : .5);
+    data.nodes.forEach(function (n) {
+      var size = (n.hub ? (phone ? 12 : 13) : (phone ? 10.5 : 11.5)) / k;
+      n.text.setAttribute("font-size", size);
+      n.text.setAttribute("y", n.r + 6 / k + size * .9);
+      n.text.style.strokeWidth = 3.5 / k + "px";
+      n.mark.style.strokeWidth = 2 / k + "px";
+      n.el.classList.toggle("child-label-hidden", !n.hub && hideChildLabels);
+    });
+    data.regions.forEach(function (r) {
+      var size = (phone ? 12 : 13.5) / k;
+      r.label.setAttribute("font-size", size);
+      r.label.style.strokeWidth = 4 / k + "px";
+      r.label.setAttribute("x", r.labelX);
+      r.label.setAttribute("y", r.labelY);
+      r.label.setAttribute("text-anchor", "middle");
+      r.labelSub.setAttribute("font-size", size * .86);
+      r.labelSub.setAttribute("dx", 8 / k);
+    });
+  }
+
+  function fitTransform() {
+    var box = svg.getBoundingClientRect(), phone = isPortrait();
+    var left = phone ? 12 : 332, right = 24, top = phone ? 16 : 30, bottom = phone ? 64 : 56;
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    data.regions.forEach(function (r) {
+      r.members.forEach(function (n) {
+        minX = Math.min(minX, n.x - 70); maxX = Math.max(maxX, n.x + 70);
+        minY = Math.min(minY, n.y - 84); maxY = Math.max(maxY, n.y + 76);
+      });
+    });
+    var k = Math.min((box.width - left - right) / (maxX - minX), (box.height - top - bottom) / (maxY - minY));
+    k = Math.max(.25, Math.min(k, 1.25));
+    return {
+      k: k,
+      x: left + (box.width - left - right - (maxX - minX) * k) / 2 - minX * k,
+      y: top + (box.height - top - bottom - (maxY - minY) * k) / 2 - minY * k
+    };
+  }
+
+  function animateTo(next) {
+    if (reduceMotion) { view = next; applyView(); return; }
+    var from = { k: view.k, x: view.x, y: view.y }, start = null;
+    target = next;
+    function step(now) {
+      if (target !== next) return;
+      start = start === null ? now : start;
+      var t = Math.min((now - start) / 240, 1), e = 1 - Math.pow(1 - t, 3);
+      view = { k: from.k + (next.k - from.k) * e, x: from.x + (next.x - from.x) * e, y: from.y + (next.y - from.y) * e };
+      applyView();
+      if (t < 1) requestAnimationFrame(step); else target = null;
+    }
+    requestAnimationFrame(step);
+  }
+
+  function zoomAt(factor, cx, cy) {
+    var k = Math.max(.25, Math.min(view.k * factor, 3));
+    var ratio = k / view.k;
+    return { k: k, x: cx - (cx - view.x) * ratio, y: cy - (cy - view.y) * ratio };
+  }
+
+  function boxCenter() {
+    var b = svg.getBoundingClientRect();
+    return [b.width / 2, b.height / 2];
+  }
+
+  document.getElementById("zoom-in").addEventListener("click", function () {
+    var c = boxCenter(); animateTo(zoomAt(1.3, c[0], c[1]));
+  });
+  document.getElementById("zoom-out").addEventListener("click", function () {
+    var c = boxCenter(); animateTo(zoomAt(1 / 1.3, c[0], c[1]));
+  });
+  document.getElementById("zoom-fit").addEventListener("click", function () { animateTo(fitTransform()); });
+
+  /* The wheel scrolls the page; pinch and Ctrl + wheel zoom the map. */
+  svg.addEventListener("wheel", function (ev) {
+    if (!ev.ctrlKey && !ev.metaKey) return;
+    ev.preventDefault();
+    var b = svg.getBoundingClientRect();
+    target = null;
+    view = zoomAt(Math.exp(-ev.deltaY * .01), ev.clientX - b.left, ev.clientY - b.top);
+    applyView();
+  }, { passive: false });
+
+  /* Hover and focus */
+  var regionFocus = null, selected = null, viewBeforeSelect = null;
+
+  function focusNodes(set) {
+    svg.classList.add("focused");
+    data.nodes.forEach(function (n) {
+      n.el.classList.toggle("lit", !!set[n.id]);
+      n.el.classList.toggle("neighbor", !!set[n.id]);
+    });
+    edges.forEach(function (e) {
+      var on = set[e.a.id] && set[e.b.id];
+      e.path.classList.toggle("lit", !!on);
+    });
+    data.regions.forEach(function (r) {
+      var on = r.members.some(function (n) { return set[n.id]; });
+      r.hull.classList.toggle("lit", on);
+      r.label.classList.toggle("lit", on);
+    });
+  }
+
+  function focusEdge(e, ev) {
+    var set = {}; set[e.a.id] = set[e.b.id] = true;
+    focusNodes(set);
+    edges.forEach(function (x) { x.path.classList.toggle("lit", x === e); });
+    showTooltip("<b></b><span></span>", e.a.title + " ↔ " + e.b.title, e.reason, ev);
+  }
+
+  function restoreFocus() {
+    if (selected) focusNodes(neighborhood(selected));
+    else if (regionFocus) {
+      var set = {};
+      regionById[regionFocus].members.forEach(function (n) { set[n.id] = true; });
+      focusNodes(set);
+    } else {
+      svg.classList.remove("focused");
+      data.nodes.forEach(function (n) { n.el.classList.remove("neighbor", "lit"); });
+    }
+  }
+
+  function clearHover() {
+    tooltip.classList.remove("visible");
+    if (!dragging) restoreFocus();
+  }
+
+  function showTooltip(markup, title, sub, ev) {
+    tooltip.innerHTML = markup;
+    tooltip.children[0].textContent = title;
+    tooltip.children[1].textContent = sub;
+    tooltip.classList.add("visible");
+    if (ev) moveTooltip(ev);
+  }
+
+  function moveTooltip(ev) {
+    var b = tooltip.getBoundingClientRect();
+    var x = Math.min(ev.clientX + 14, window.innerWidth - b.width - 10);
+    var y = ev.clientY + 16;
+    if (y + b.height > window.innerHeight - 10) y = ev.clientY - b.height - 12;
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+  }
+
+  /* Dragging nodes and panning the background */
+  var dragging = null, moved = false, live = false;
+
+  function toWorld(ev) {
+    var b = svg.getBoundingClientRect();
+    return [(ev.clientX - b.left - view.x) / view.k, (ev.clientY - b.top - view.y) / view.k];
+  }
+
+  function reheat() {
+    if (live || reduceMotion) return;
+    live = true;
+    var alpha = .32;
+    function frame() {
+      if (dragging) alpha = Math.max(alpha, .16);
+      tick(alpha); draw();
+      alpha *= .965;
+      if (alpha > .02) requestAnimationFrame(frame); else live = false;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function startDrag(ev, n) {
+    ev.stopPropagation();
+    dragging = n; moved = false;
+    n.fixed = true;
+    n.startX = ev.clientX; n.startY = ev.clientY;
+    n.el.setPointerCapture(ev.pointerId);
+    tooltip.classList.remove("visible");
+  }
+
+  svg.addEventListener("pointermove", function (ev) {
+    if (dragging) {
+      if (!moved && Math.hypot(ev.clientX - dragging.startX, ev.clientY - dragging.startY) < 4) return;
+      moved = true;
+      var p = toWorld(ev);
+      dragging.x = p[0]; dragging.y = p[1];
+      if (reduceMotion) draw(); else reheat();
+    } else if (panning) {
+      view = { k: view.k, x: panning.x + ev.clientX - panning.cx, y: panning.y + ev.clientY - panning.cy };
+      if (Math.hypot(ev.clientX - panning.cx, ev.clientY - panning.cy) > 4) panning.moved = true;
+      applyView();
+    }
+  });
+
+  svg.addEventListener("pointerup", function () {
+    if (dragging) {
+      var n = dragging;
+      n.fixed = false;
+      dragging = null;
+      if (!moved) select(n.id);
+      else restoreFocus();
+    }
+    if (panning) {
+      panMoved = panning.moved;
+      panning = null;
+      svg.classList.remove("panning");
+    }
+  });
+
+  var panning = null, panMoved = false;
+  svg.addEventListener("pointerdown", function (ev) {
+    if (ev.pointerType === "touch") return;
+    target = null;
+    panning = { cx: ev.clientX, cy: ev.clientY, x: view.x, y: view.y, moved: false };
+    svg.setPointerCapture(ev.pointerId);
+    svg.classList.add("panning");
+  });
+  svg.addEventListener("click", function (ev) {
+    if (ev.target === svg && !panMoved) deselect();
+    panMoved = false;
+  });
+
+  /* Detail panel */
+  function node(tag, cls, text, parent) {
+    var x = document.createElement(tag);
+    if (cls) x.className = cls;
+    if (text !== undefined) x.textContent = text;
+    if (parent) parent.appendChild(x);
+    return x;
+  }
+
+  function relationList(title, items) {
+    if (!items.length) return;
+    var box = node("section", "relations", undefined, detailBody);
+    node("h3", "", title, box);
+    var ul = node("ul", "", undefined, box);
+    items.forEach(function (item) {
+      var li = node("li", "", undefined, ul);
+      var b = node("button", "", undefined, li);
+      b.type = "button";
+      var t = node("span", "rel-title", undefined, b);
+      var d = node("span", "dot", undefined, t);
+      d.style.setProperty("--c", regionById[item.node.region].color);
+      node("span", "", item.node.title, t);
+      if (item.reason) node("span", "rel-reason", item.reason, b);
+      b.addEventListener("click", function () { select(item.node.id); });
+    });
+  }
+
+  function renderDetail(n) {
+    var region = regionById[n.region];
+    detailBody.textContent = "";
+    var head = node("div", "detail-region", undefined, detailBody);
+    var dot = node("span", "dot", undefined, head);
+    dot.style.setProperty("--c", region.color);
+    node("span", "", region.title + " · " + region.subtitle, head);
+    node("h2", "", n.title, detailBody);
+    if (n.description) node("p", "detail-desc", n.description, detailBody);
+
+    var meta = node("dl", "detail-meta", undefined, detailBody);
+    [["类型", n.kind], ["License", n.license], ["更新", n.updated]].forEach(function (row) {
+      node("dt", "", row[0], meta);
+      node("dd", "", row[1], meta);
+    });
+
+    var open = node("a", "open-link", n.kind === "网站" ? "打开页面 ↗" : "在 GitHub 打开 ↗", detailBody);
+    open.href = n.url; open.target = "_blank"; open.rel = "noopener";
+
+    var related = neighbors(n.id);
+    relationList("知识关联", related.filter(function (x) { return !x.edge.tree; }).map(function (x) {
+      return { node: x.node, reason: x.edge.reason };
+    }));
+    relationList(n.hub ? "包含" : "所属", related.filter(function (x) { return x.edge.tree; }).map(function (x) {
+      return { node: x.node };
+    }));
+    detailBody.scrollTop = 0;
+  }
+
+  function select(id) {
+    if (selected) byId[selected].el.classList.remove("selected");
+    selected = id;
+    regionFocus = null;
+    syncLegend();
+    var n = byId[id];
+    n.el.classList.add("selected");
+    renderDetail(n);
+    detail.classList.add("open");
+    focusNodes(neighborhood(id));
+    var b = svg.getBoundingClientRect();
+    if (!isPortrait()) {
+      var sx = n.x * view.k + view.x;
+      if (sx > b.width - 400) {
+        viewBeforeSelect = viewBeforeSelect || view;
+        animateTo({ k: view.k, x: view.x - (sx - (b.width - 420)), y: view.y });
+      }
+    }
+  }
+
+  function deselect() {
+    if (selected) byId[selected].el.classList.remove("selected");
+    selected = null;
+    detail.classList.remove("open");
+    if (viewBeforeSelect) { animateTo(viewBeforeSelect); viewBeforeSelect = null; }
+    restoreFocus();
+  }
+
+  document.getElementById("detail-close").addEventListener("click", deselect);
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") deselect(); });
+
+  /* Legend */
+  var legend = document.getElementById("legend");
+  data.regions.forEach(function (r) {
+    var li = node("li", "", undefined, legend);
+    var b = node("button", "", undefined, li);
+    b.type = "button";
+    b.setAttribute("aria-pressed", "false");
+    var dot = node("span", "dot", undefined, b);
+    dot.style.setProperty("--c", r.color);
+    var text = node("span", "", undefined, b);
+    node("strong", "", r.title, text);
+    node("small", "", r.subtitle, text);
+    node("span", "count", String(r.members.length), b);
+    r.button = b;
+    b.addEventListener("click", function () {
+      regionFocus = regionFocus === r.id ? null : r.id;
+      if (selected) { byId[selected].el.classList.remove("selected"); selected = null; detail.classList.remove("open"); }
+      syncLegend();
+      restoreFocus();
+    });
+  });
+  function syncLegend() {
+    data.regions.forEach(function (r) { r.button.setAttribute("aria-pressed", String(regionFocus === r.id)); });
+  }
+
+  /* Boot */
+  function layout() {
+    assignAnchors();
+    seed();
+    settle();
+    draw();
+    view = fitTransform();
+    applyView();
+  }
+
+  layout();
+  var wasPortrait = isPortrait(), resizeTimer;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (isPortrait() !== wasPortrait) { wasPortrait = isPortrait(); layout(); }
+      else { view = fitTransform(); applyView(); }
+    }, 120);
+  });
+})();
+</script>
+</body>
+</html>

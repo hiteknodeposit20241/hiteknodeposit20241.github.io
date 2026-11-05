@@ -1,45 +1,137 @@
 {
   "hidden": [],
+  "author": {
+    "name": "Kuan Zhou",
+    "bio": "AI engineer with scientific research background in physics.",
+    "avatar": "https://avatars.githubusercontent.com/u/4213955?v=4",
+    "github": "https://github.com/kzhou003",
+    "website": "https://kuanzhou.online"
+  },
   "categories": [
     {
-      "title": "Dev Skills",
-      "subtitle": "开发用的 skills",
-      "repos": [
-        {"repo": "ai-infra-dev-skills", "description": "用于学习和贡献 AI infra 代码库的 Claude Code skills，中英双语"}
-      ]
-    },
-    {
-      "title": "Awesome Lists",
-      "subtitle": "阅读与跟踪",
-      "repos": [
-        {"repo": "awesome-post-training", "description": "以强化学习为主线的基础模型后训练指南，兼顾数学与系统视角"},
-        {"repo": "awesome-agentic-robotics", "description": "面向系统的机器人全景：硬件、经典基础、仿真、自主栈、机器人学习与具身基础模型"},
-        {"repo": "awesome-coding-agent-systems", "description": "理解、构建和部署 coding agent 系统，覆盖从 LLM 基础到生产部署的完整流程"},
-        {"repo": "awesome-devops-agents", "description": "DevOps、SRE、AIOps、事故响应与根因分析方向的 AI agent 精选地图"}
-      ]
-    },
-    {
-      "title": "Deep Drills",
-      "subtitle": "深度练习与开源贡献",
-      "repos": [
-        {"repo": "ai-compiler-drills"},
-        {"repo": "gpu-kernel-drills"},
-        {"repo": "nano-vllm-omni-drills", "description": "26 道一小时练习，逐个实现多模态（Qwen3-Omni 风格）推理服务系统的核心机制"}
-      ]
-    },
-    {
-      "title": "Overviews",
-      "subtitle": "查漏补缺，准备面试",
-      "repos": [
-        {"repo": "inference-serving-overview"}
-      ]
-    },
-    {
+      "id": "adhoc",
       "title": "Adhoc Drills",
       "subtitle": "日常学习整理",
+      "color": "#d55181",
       "repos": [
-        {"repo": "adhoc-lean-grills"}
+        {
+          "repo": "adhoc-lean-grills",
+          "children": [
+            {"id": "rss-guide", "title": "RSSHub + Folo 源码导读", "description": "RSS 生态的问题、两个项目的分工，以及一条订阅的完整旅程", "url": "https://kzhou003.github.io/adhoc-lean-grills/rss-guide/rss-guide.html"},
+            {"id": "luminal-report", "title": "Luminal 拆解", "description": "拆解 Luminal 这个 GPU 编译器项目", "url": "https://kzhou003.github.io/adhoc-lean-grills/luminal-report/luminal_report.html"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deep",
+      "title": "Deep Drills",
+      "subtitle": "深度练习与开源贡献",
+      "color": "#3987e5",
+      "repos": [
+        {
+          "repo": "ai-compiler-drills",
+          "children": [
+            {"id": "aic-found", "title": "GEMM 资源账", "description": "occupancy、wave、roofline、benchmark 方法与数值正确性", "url": "https://kzhou003.github.io/ai-compiler-drills/#K1"},
+            {"id": "aic-triton", "title": "Triton 编译链路", "description": "四层 IR 解剖、复刻 coalesce pass、autotuner 与 FileCheck", "url": "https://kzhou003.github.io/ai-compiler-drills/#T1"},
+            {"id": "aic-luminal", "title": "Luminal 图优化", "description": "primitive graph、从零写 e-graph、genome 搜索与差分测试", "url": "https://kzhou003.github.io/ai-compiler-drills/#L1"}
+          ]
+        },
+        {
+          "repo": "gpu-kernel-drills",
+          "children": [
+            {"id": "gpu-triton", "title": "Triton Kernel", "description": "用 Triton 写 GPU kernel 的 T1–T5 练习", "url": "https://kzhou003.github.io/gpu-kernel-drills/#T1"},
+            {"id": "gpu-attn", "title": "推理 Attention", "description": "从零写推理用的 attention kernel", "url": "https://kzhou003.github.io/gpu-kernel-drills/#L1"},
+            {"id": "gpu-flashinfer", "title": "FlashInfer", "description": "对着官方 API 实现并对拍，最后做贡献实战", "url": "https://kzhou003.github.io/gpu-kernel-drills/#F1"},
+            {"id": "gpu-moe", "title": "MoE 与 FP8", "description": "MoE 和 FP8 推理的 kernel 练习", "url": "https://kzhou003.github.io/gpu-kernel-drills/#M1"}
+          ]
+        },
+        {
+          "repo": "nano-vllm-omni-drills",
+          "description": "26 道一小时练习，逐个实现多模态（Qwen3-Omni 风格）推理服务系统的核心机制",
+          "license": "MIT · CC BY 4.0",
+          "children": [
+            {"id": "nano-model", "title": "模型组件", "description": "RMSNorm / MRoPE、Thinker attention、Sparse MoE、Talker MTP", "url": "https://kzhou003.github.io/nano-vllm-omni-drills/hints/m01_overview.html"},
+            {"id": "nano-sched", "title": "Scheduler 与 Paged KV", "description": "continuous batching、chunked prefill、抢占和前缀缓存", "url": "https://kzhou003.github.io/nano-vllm-omni-drills/hints/p07_overview.html"},
+            {"id": "nano-orch", "title": "Omni 编排", "description": "多 stage 路由、async_chunk 与 Thinker→Talker 流程", "url": "https://kzhou003.github.io/nano-vllm-omni-drills/hints/p02_overview.html"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overview",
+      "title": "Overviews",
+      "subtitle": "查漏补缺，准备面试",
+      "color": "#d95926",
+      "repos": [
+        {
+          "repo": "inference-serving-overview",
+          "children": [
+            {"id": "ov-llm", "title": "LLM Serving 核心技术", "description": "现代推理引擎共有的调度、KV 管理与缓存技术", "url": "https://kzhou003.github.io/inference-serving-overview/#llm"},
+            {"id": "ov-moe", "title": "扩展到 MoE", "description": "显存按总参数算，计算按激活参数算", "url": "https://kzhou003.github.io/inference-serving-overview/#moe"},
+            {"id": "ov-frameworks", "title": "推理框架", "description": "vLLM 和 SGLang 的架构与区别", "url": "https://kzhou003.github.io/inference-serving-overview/#frameworks"},
+            {"id": "ov-posttrain", "title": "后训练推理", "description": "RL rollout 是一个推理问题", "url": "https://kzhou003.github.io/inference-serving-overview/#posttrain"},
+            {"id": "ov-omni", "title": "Omni 与多模态", "description": "多模态输出如何改变 serving 的假设", "url": "https://kzhou003.github.io/inference-serving-overview/#omni"},
+            {"id": "ov-robotics", "title": "机器人推理", "description": "从吞吐回到实时：延迟和抖动决定任务成败", "url": "https://kzhou003.github.io/inference-serving-overview/#robotics"},
+            {"id": "ov-coding", "title": "Coding Agent 推理", "description": "长会话、高命中、慢工具", "url": "https://kzhou003.github.io/inference-serving-overview/#coding"},
+            {"id": "ov-adjacent", "title": "Sandbox 与观测", "description": "sandbox、网关和观测等相关技术", "url": "https://kzhou003.github.io/inference-serving-overview/#adjacent"},
+            {"id": "ov-interview", "title": "面试速查", "description": "估算公式和常见考点", "url": "https://kzhou003.github.io/inference-serving-overview/#interview"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "title": "Dev Skills",
+      "subtitle": "开发用的 skills",
+      "color": "#c98500",
+      "repos": [
+        {
+          "repo": "ai-infra-dev-skills",
+          "title": "AI Infra Dev Skills",
+          "description": "用于学习和贡献 AI infra 代码库的 Claude Code skills，中英双语",
+          "children": [
+            {"id": "read-codebase", "title": "read-codebase", "description": "把开源代码库讲成 code-wiki 风格的 HTML 报告和 PDF", "url": "https://github.com/kzhou003/ai-infra-dev-skills/tree/main/skills/read-codebase"},
+            {"id": "practice-drills", "title": "practice-drills", "description": "为一个技术领域生成动手练习仓库", "url": "https://github.com/kzhou003/ai-infra-dev-skills/tree/main/skills/practice-drills"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "awesome",
+      "title": "Awesome Lists",
+      "subtitle": "阅读与跟踪",
+      "color": "#199e70",
+      "repos": [
+        {"repo": "awesome-post-training", "title": "Awesome Post-Training", "license": "CC0-1.0", "description": "以强化学习为主线的基础模型后训练指南，兼顾数学与系统视角"},
+        {"repo": "awesome-agentic-robotics", "title": "Awesome Agentic Robotics", "license": "CC0-1.0", "description": "面向系统的机器人全景：硬件、经典基础、仿真、自主栈、机器人学习与具身基础模型"},
+        {"repo": "awesome-coding-agent-systems", "title": "Awesome Coding Agent Systems", "description": "理解、构建和部署 coding agent 系统，覆盖从 LLM 基础到生产部署的完整流程"},
+        {"repo": "awesome-devops-agents", "title": "Awesome DevOps Agents", "license": "CC0-1.0", "description": "DevOps、SRE、AIOps、事故响应与根因分析方向的 AI agent 精选地图"}
       ]
     }
+  ],
+  "links": [
+    {"source": "luminal-report", "target": "aic-luminal", "reason": "同一个项目：报告讲清架构，练习动手实现 e-graph 与搜索"},
+    {"source": "luminal-report", "target": "read-codebase", "reason": "分析 Luminal 正是 read-codebase 的示例任务"},
+    {"source": "rss-guide", "target": "read-codebase", "reason": "RSSHub + Folo 源码导读正是 read-codebase-zh 的示例任务"},
+    {"source": "practice-drills", "target": "nano-vllm-omni-drills", "reason": "这个 skill 沉淀自 nano-vllm-omni-drills 的制作过程"},
+    {"source": "practice-drills", "target": "gpu-kernel-drills", "reason": "这个 skill 沉淀自 gpu-kernel-drills 的制作过程"},
+    {"source": "practice-drills", "target": "ai-compiler-drills", "reason": "这个 skill 沉淀自 ai-compiler-drills 的制作过程"},
+    {"source": "aic-triton", "target": "gpu-triton", "reason": "同一个编译器：一边写 kernel，一边读 IR 和 pass"},
+    {"source": "aic-found", "target": "gpu-kernel-drills", "reason": "都用 occupancy 和 roofline 算 GPU 的资源账"},
+    {"source": "ov-llm", "target": "nano-sched", "reason": "continuous batching、抢占和 KV 管理，从概念落到实现"},
+    {"source": "ov-omni", "target": "nano-orch", "reason": "Omni 的多 stage 架构：概览讲取舍，练习写实现"},
+    {"source": "ov-moe", "target": "gpu-moe", "reason": "MoE 推理：系统视角与 kernel 视角"},
+    {"source": "ov-moe", "target": "nano-model", "reason": "概览讲 MoE 的资源模型，练习实现 Sparse MoE 路由"},
+    {"source": "ov-frameworks", "target": "gpu-flashinfer", "reason": "推理框架与底层 attention kernel 库的上下层关系"},
+    {"source": "gpu-attn", "target": "nano-model", "reason": "同一个 attention：kernel 视角与模型视角"},
+    {"source": "ov-posttrain", "target": "awesome-post-training", "reason": "RL rollout 的推理视角，与后训练领域的全景地图"},
+    {"source": "ov-robotics", "target": "awesome-agentic-robotics", "reason": "机器人策略的推理问题，与机器人技术栈全景"},
+    {"source": "ov-coding", "target": "awesome-coding-agent-systems", "reason": "Coding agent 的推理负载，与它的系统工程全貌"},
+    {"source": "ov-adjacent", "target": "awesome-devops-agents", "reason": "sandbox 和观测，是 agent 运行与排障依赖的基础设施"},
+    {"source": "awesome-post-training", "target": "awesome-agentic-robotics", "reason": "强化学习同时是后训练和机器人学习的主线"},
+    {"source": "awesome-coding-agent-systems", "target": "awesome-devops-agents", "reason": "写代码和做运维的 agent，共用 agent 架构与工具协议"},
+    {"source": "ov-interview", "target": "gpu-kernel-drills", "reason": "面试速查配上 gpu-kernel-drills 自带的面试题库"},
+    {"source": "ov-interview", "target": "nano-vllm-omni-drills", "reason": "面试速查配上手册里每题的面试官追问"}
   ]
 }
