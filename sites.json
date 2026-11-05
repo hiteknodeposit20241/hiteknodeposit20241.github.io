@@ -1,5 +1,11 @@
 {
   "hidden": [],
+  "autoRules": [
+    {"pattern": "^awesome-", "category": "awesome"},
+    {"pattern": "-drills$", "category": "deep"},
+    {"pattern": "-overview$", "category": "overview"},
+    {"pattern": "-skills$", "category": "skills"}
+  ],
   "author": {
     "name": "Kuan Zhou",
     "bio": "AI engineer with scientific research background in physics.",
@@ -17,6 +23,7 @@
       "repos": [
         {
           "repo": "adhoc-lean-grills",
+          "autoChildren": true,
           "children": [
             {"id": "rss-guide", "title": "RSSHub + Folo 源码导读", "description": "RSS 生态的问题、两个项目的分工，以及一条订阅的完整旅程", "url": "https://kzhou003.github.io/adhoc-lean-grills/rss-guide/rss-guide.html"},
             {"id": "luminal-report", "title": "Luminal 拆解", "description": "拆解 Luminal 这个 GPU 编译器项目", "url": "https://kzhou003.github.io/adhoc-lean-grills/luminal-report/luminal_report.html"}

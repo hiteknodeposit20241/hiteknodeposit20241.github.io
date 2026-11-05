@@ -2,7 +2,8 @@
 
 Usage: python scripts/build_directory.py <output-dir>
 
-sites.json holds the regions, nodes, and hand-verified knowledge links.
+sites.json holds the regions, nodes, hand-verified knowledge links, and the rules
+that sort new repos into regions automatically.
 site/template.html holds the page. A repo with a live Pages site links to that
 site, a repo marked "readmePage" links to its README rendered on this site, and
 any other repo links to GitHub. Public Pages repos missing from sites.json go to
@@ -10,13 +11,17 @@ a "未分类" region so new sites are never lost.
 
 Reads GITHUB_TOKEN from the environment if set, which raises the API rate limit.
 Any GitHub API failure aborts the build, so the last good deployment stays live.
+The output includes fingerprint.txt, a hash of the site, which the workflow compares
+with the live copy so that it only deploys when something changed.
 """
+import hashlib
 import html
 import json
 import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -28,7 +33,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "sites.json"
 SITE = ROOT / "site"
 TEMPLATE = SITE / "template.html"
+FINGERPRINT = "fingerprint.txt"
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+DESCRIPTION_RE = re.compile(r'<meta name="description" content="([^"]*)"', re.I)
+INDEX_LINK_RE = re.compile(r'<li><a href="([^"]+)">([^<]+)</a></li>')
 OTHER_REGION = {"id": "other", "title": "未分类", "subtitle": "尚未归类的站点", "color": "#8b8f9a", "colorLight": "#5f6f76"}
 
 
@@ -52,16 +60,62 @@ def public_repos():
         page += 1
 
 
-def page_title(url):
-    """Return the live page's <title>, or None if the site is not serving."""
-    request = urllib.request.Request(url, headers={"User-Agent": "site-directory"})
+def has_readme(name):
     try:
-        with urllib.request.urlopen(request, timeout=30) as resp:
-            body = resp.read(200_000).decode("utf-8", "replace")
-    except (urllib.error.URLError, TimeoutError):
-        return None
-    match = TITLE_RE.search(body)
+        github_get(f"/repos/{OWNER}/{name}/readme")
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return False
+        raise
+    return True
+
+
+def fetch_page(url):
+    """Return a live page's HTML, or None if it is not serving after one retry."""
+    request = urllib.request.Request(url, headers={"User-Agent": "site-directory"})
+    for _ in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as resp:
+                return resp.read(200_000).decode("utf-8", "replace")
+        except (urllib.error.URLError, TimeoutError):
+            continue
+    return None
+
+
+def first_match(pattern, body):
+    match = pattern.search(body)
     return html.unescape(" ".join(match.group(1).split())) if match else ""
+
+
+def discover_children(hub, known):
+    """List the notes on a hub's own index page that sites.json does not name yet."""
+    body = fetch_page(hub["url"]) or ""
+    urls = {child["url"] for child in known}
+    found = []
+    for href, title in INDEX_LINK_RE.findall(body):
+        url = urllib.parse.urljoin(hub["url"], html.unescape(href))
+        if url not in urls:
+            found.append({
+                "id": f'{hub["id"]}/{href}',
+                "title": html.unescape(title),
+                "description": "",
+                "url": url,
+            })
+    return found
+
+
+def apply_auto_rules(config, repos):
+    """Add new repos to the region their name matches. Forks and archives stay out."""
+    categories = {category["id"]: category for category in config["categories"]}
+    listed = {USER_SITE, *config["hidden"]}
+    listed.update(entry["repo"] for category in config["categories"] for entry in category["repos"])
+    for name, repo in sorted(repos.items()):
+        if name in listed or repo["fork"] or repo["archived"]:
+            continue
+        rule = next((r for r in config["autoRules"] if re.search(r["pattern"], name)), None)
+        if rule:
+            entry = {"repo": name, "readmePage": not repo["has_pages"] and has_readme(name)}
+            categories[rule["category"]]["repos"].append(entry)
 
 
 def license_of(repo, entry):
@@ -73,14 +127,15 @@ def license_of(repo, entry):
 
 def hub_node(repo, entry, region_id):
     name = repo["name"]
-    url, kind, title = repo["html_url"], "GitHub 仓库", name
+    url, kind, title, site_description = repo["html_url"], "GitHub 仓库", name, ""
     if entry.get("readmePage") and not repo["has_pages"]:
         url, kind = f"https://{USER_SITE}/{name}/", "网站"
     elif repo["has_pages"]:
         site_url = f"https://{USER_SITE}/{name}/"
-        site_title = page_title(site_url)
-        if site_title is not None:
-            url, kind, title = site_url, "网站", site_title or name
+        body = fetch_page(site_url)
+        if body is not None:
+            url, kind, title = site_url, "网站", first_match(TITLE_RE, body) or name
+            site_description = first_match(DESCRIPTION_RE, body)
     return {
         "id": name,
         "title": entry.get("title") or title,
@@ -88,7 +143,7 @@ def hub_node(repo, entry, region_id):
         "hub": True,
         "url": url,
         "kind": kind,
-        "description": entry.get("description") or repo["description"] or "",
+        "description": entry.get("description") or repo["description"] or site_description,
         "license": license_of(repo, entry),
         "updated": repo["pushed_at"][:10],
     }
@@ -107,7 +162,10 @@ def build_graph(config, repos):
                 continue
             hub = hub_node(repos[name], entry, category["id"])
             nodes.append(hub)
-            for child in entry.get("children", []):
+            children = list(entry.get("children", []))
+            if entry.get("autoChildren"):
+                children += discover_children(hub, children)
+            for child in children:
                 nodes.append({
                     **child,
                     "region": category["id"],
@@ -208,10 +266,20 @@ def write_readme_pages(config, repos, graph, shared, output):
     return count
 
 
+def write_fingerprint(output):
+    digest = hashlib.sha256()
+    for path in sorted(output.rglob("*")):
+        if path.is_file() and path.name != FINGERPRINT:
+            digest.update(path.relative_to(output).as_posix().encode())
+            digest.update(path.read_bytes())
+    (output / FINGERPRINT).write_text(digest.hexdigest() + "\n", encoding="utf-8")
+
+
 def main():
     output = Path(sys.argv[1])
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     repos = public_repos()
+    apply_auto_rules(config, repos)
     graph = build_graph(config, repos)
     author = config["author"]
     shared = shared_values(graph, author)
@@ -232,6 +300,7 @@ def main():
     (output / "index.html").write_text(page, encoding="utf-8")
     (output / ".nojekyll").touch()
     readme_count = write_readme_pages(config, repos, graph, shared, output)
+    write_fingerprint(output)
     print(f"Built {len(graph['nodes'])} nodes, {len(graph['links'])} links, {readme_count} README pages")
 
 

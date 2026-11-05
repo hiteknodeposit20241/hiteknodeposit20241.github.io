@@ -21,28 +21,37 @@
 python3 scripts/build_directory.py _site && open _site/index.html
 ```
 
-## 更新时机
+## 自动更新
 
-- 每天定时重新生成一次。
-- 推送到 `main` 时重新生成。
-- 想立刻更新时，运行：
+每 30 分钟完整重建一次，把结果和线上的 `fingerprint.txt` 对比，有变化才部署。推送到本仓库时立刻部署。想马上检查一次，运行：
 
 ```bash
 gh workflow run pages.yml -R kzhou003/kzhou003.github.io
 ```
 
-## 维护图谱
+下面这些都不用改配置：
 
-都改 `sites.json`，然后推送：
+| 变化 | 结果 |
+| --- | --- |
+| 已收录仓库的 README、页面标题、描述、license 或更新日期变了 | 页面和图谱自动同步 |
+| `adhoc-lean-grills` 里加了新笔记 | 自动成为 Adhoc Drills 的子节点 |
+| 新建 `awesome-*` 仓库 | 进入 Awesome Lists，没开 Pages 时发布它的 README |
+| 新建 `*-drills`、`*-overview`、`*-skills` 仓库 | 进入 Deep Drills、Overviews、Dev Skills，规则同上 |
+| 其他名称的仓库开了 Pages | 进入“未分类” |
+| 仓库删除、改为私有或开了 Pages | 自动移除或换成它自己的网站 |
 
-- **添加仓库**：加到对应区域的 `repos` 里，没开 Pages 的仓库也可以加。
-- **发布 README**：在仓库条目里加 `"readmePage": true`，它的 README 就会发布到 `https://kzhou003.github.io/<仓库名>/`，不用改动那个仓库。README 里指向仓库文件的链接仍然打开 GitHub。如果那个仓库以后自己开了 Pages，这个设置会自动失效，改用它自己的网站。
-- **添加子节点**：在仓库的 `children` 里加一项，填写 `id`、`title`、`description` 和 `url`。
-- **添加知识关联**：在 `links` 里加一项，`reason` 写明两者的具体关系。
+fork 和已归档的仓库不会被规则收录。规则在 `sites.json` 的 `autoRules` 里。
+
+## 手动维护
+
+这些内容需要判断，改 `sites.json` 后推送：
+
+- **知识关联**：在 `links` 里加一项，`reason` 写明两者的具体关系。新节点没有关联时只连到所属仓库。
+- **子节点**：除了 `autoChildren` 的仓库，其他仓库的子主题写在 `children` 里，填写 `id`、`title`、`description` 和 `url`。
 - **隐藏站点**：把仓库名加到 `hidden` 里。
-- **修正 license**：GitHub 识别不出时，在仓库条目里填写 `license`。
-
-新的 Pages 站点没有归类时，会自动出现在“未分类”区域。
+- **归类或发布 README**：把仓库加到对应区域的 `repos` 里，加上 `"readmePage": true` 就会发布到 `https://kzhou003.github.io/<仓库名>/`，不用改动那个仓库。README 里指向仓库文件的链接仍然打开 GitHub。
+- **修正说明或 license**：在仓库条目里填写 `description` 或 `license`。
+- **增加区域**：在 `categories` 里加一项，页面按这里的顺序显示。
 
 ## 配色
 
