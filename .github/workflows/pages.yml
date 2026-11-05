@@ -46,6 +46,7 @@ jobs:
       # GitHub disables schedules after 60 days without repo activity.
       - name: Keep the schedule enabled
         if: github.event_name == 'schedule'
+        continue-on-error: true
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/pages.yml/enable"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
