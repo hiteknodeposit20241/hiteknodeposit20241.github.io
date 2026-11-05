@@ -13,6 +13,7 @@
       "title": "Adhoc Drills",
       "subtitle": "日常学习整理",
       "color": "#d55181",
+      "colorLight": "#c9477a",
       "repos": [
         {
           "repo": "adhoc-lean-grills",
@@ -28,6 +29,7 @@
       "title": "Deep Drills",
       "subtitle": "深度练习与开源贡献",
       "color": "#3987e5",
+      "colorLight": "#2a78d6",
       "repos": [
         {
           "repo": "ai-compiler-drills",
@@ -63,6 +65,7 @@
       "title": "Overviews",
       "subtitle": "查漏补缺，准备面试",
       "color": "#d95926",
+      "colorLight": "#c94f1c",
       "repos": [
         {
           "repo": "inference-serving-overview",
@@ -85,6 +88,7 @@
       "title": "Dev Skills",
       "subtitle": "开发用的 skills",
       "color": "#c98500",
+      "colorLight": "#a87300",
       "repos": [
         {
           "repo": "ai-infra-dev-skills",
@@ -102,6 +106,7 @@
       "title": "Awesome Lists",
       "subtitle": "阅读与跟踪",
       "color": "#199e70",
+      "colorLight": "#0f8a5f",
       "repos": [
         {"repo": "awesome-post-training", "title": "Awesome Post-Training", "license": "CC0-1.0", "description": "以强化学习为主线的基础模型后训练指南，兼顾数学与系统视角"},
         {"repo": "awesome-agentic-robotics", "title": "Awesome Agentic Robotics", "license": "CC0-1.0", "description": "面向系统的机器人全景：硬件、经典基础、仿真、自主栈、机器人学习与具身基础模型"},

@@ -7,8 +7,16 @@
 <meta name="description" content="__NAME__ 的学习地图：练习、概览、技能和阅读清单，以及它们之间的知识关联。">
 <meta property="og:title" content="__NAME__ · 知识图谱">
 <meta property="og:description" content="练习、概览、技能和阅读清单，以及它们之间的知识关联。">
-<meta name="theme-color" content="#14151a">
+<meta name="theme-color" id="theme-color" content="#14151a">
+<script>
+  (function () {
+    var theme = null;
+    try { theme = new URLSearchParams(location.search).get("theme") || localStorage.getItem("graph-theme"); } catch (e) {}
+    if (theme === "latte") document.documentElement.setAttribute("data-theme", "latte");
+  })();
+</script>
 <style>
+  __REGION_VARS__
   :root {
     color-scheme: dark;
     --bg: #14151a;
@@ -19,9 +27,50 @@
     --text: #ece9e2;
     --text-2: #b4b2ab;
     --text-3: #8b8a84;
+    --heading: #ece9e2;
     --link: #8fb8f0;
     --focus: #8fb8f0;
+    --glow: #1b1d24;
+    --halo: #14151a;
+    --edge: #4b4f5c;
+    --edge-lit: #8b8f9a;
+    --hover: rgba(255, 255, 255, .05);
+    --pressed: rgba(255, 255, 255, .09);
+    --shadow: rgba(0, 0, 0, .35);
+    --button: #ece9e2;
+    --button-hover: #fff;
+    --button-text: #14151a;
+    --hull: .085;
+    --hull-dim: .025;
+    --latent: .72;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+  }
+  :root[data-theme="latte"] {
+    color-scheme: light;
+    --bg: #e8f5f5;
+    --panel: rgba(255, 255, 255, .88);
+    --panel-solid: #fff;
+    --line: #c9e3e4;
+    --line-strong: #a7d7d8;
+    --text: #1f2a30;
+    --text-2: #46555c;
+    --text-3: #5f6f76;
+    --heading: #663399;
+    --link: #003366;
+    --focus: #663399;
+    --glow: #fff;
+    --halo: #f8fcfc;
+    --edge: #a9bcbf;
+    --edge-lit: #5f6f76;
+    --hover: rgba(0, 51, 102, .06);
+    --pressed: rgba(167, 215, 216, .45);
+    --shadow: rgba(0, 51, 102, .14);
+    --button: #663399;
+    --button-hover: #532a7d;
+    --button-text: #fff;
+    --hull: .12;
+    --hull-dim: .04;
+    --latent: .8;
   }
   * { box-sizing: border-box; }
   html { background: var(--bg); -webkit-text-size-adjust: 100%; }
@@ -34,7 +83,7 @@
   .dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 
   .stage { position: relative; height: 100vh; height: 100svh; min-height: 620px; overflow: hidden;
-           background: radial-gradient(ellipse 80% 70% at 58% 42%, #1b1d24 0%, var(--bg) 72%); }
+           background: radial-gradient(ellipse 80% 70% at 58% 42%, var(--glow) 0%, var(--bg) 72%); }
   #graph { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y;
            cursor: grab; user-select: none; -webkit-user-select: none; }
   #graph.panning { cursor: grabbing; }
@@ -44,16 +93,19 @@
            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
   .author { display: flex; gap: 12px; align-items: center; }
   .author img { width: 44px; height: 44px; border-radius: 50%; background: var(--line); }
-  .author h1 { font-size: 18px; line-height: 1.3; font-weight: 650; }
+  .author h1 { color: var(--heading); font-size: 18px; line-height: 1.3; font-weight: 650; }
   .author p { color: var(--text-3); font-size: 12px; }
   .bio { color: var(--text-2); font-size: 13px; line-height: 1.5; margin-top: 12px; }
-  .profile-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 13px; }
+  .profile-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 8px; font-size: 13px; }
+  .theme-toggle { margin-left: auto; padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 999px;
+                  color: var(--text-2); font-size: 12px; }
+  .theme-toggle:hover { color: var(--text); background: var(--hover); }
 
   .legend { margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); list-style: none; }
   .legend button { display: flex; align-items: center; gap: 10px; padding: 5px 8px; margin: 0 -8px;
                    width: calc(100% + 16px); border-radius: 6px; text-align: left; line-height: 1.35; }
-  .legend button:hover { background: rgba(255, 255, 255, .05); }
-  .legend button[aria-pressed="true"] { background: rgba(255, 255, 255, .09); }
+  .legend button:hover { background: var(--hover); }
+  .legend button[aria-pressed="true"] { background: var(--pressed); }
   .legend strong { display: block; font-size: 13px; font-weight: 600; }
   .legend small { display: block; color: var(--text-3); font-size: 12px; }
   .legend .count { margin-left: auto; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -68,22 +120,22 @@
                 background: var(--panel); border: 1px solid var(--line); white-space: nowrap; }
   .scroll-cue:hover { text-decoration: none; color: var(--text); border-color: var(--line-strong); }
 
-  .region-hull { opacity: .085; stroke-linejoin: round; stroke-linecap: round; transition: opacity .18s; }
-  .region-label { pointer-events: none; transition: opacity .18s; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
-  .region-label .name { fill: var(--text); font-weight: 650; }
+  .region-hull { opacity: var(--hull); stroke-linejoin: round; stroke-linecap: round; transition: opacity .18s; }
+  .region-label { pointer-events: none; transition: opacity .18s; paint-order: stroke; stroke: var(--halo); stroke-width: 4px; }
+  .region-label .name { fill: var(--heading); font-weight: 650; }
   .region-label .sub { fill: var(--text-2); }
 
   .edge { fill: none; transition: opacity .18s; pointer-events: none; }
-  .edge.tree { stroke: #4b4f5c; stroke-width: 1; }
-  .edge.latent { stroke-width: 1.5; opacity: .72; }
+  .edge.tree { stroke: var(--edge); stroke-width: 1; }
+  .edge.latent { stroke-width: 1.5; opacity: var(--latent); }
   .edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: help; pointer-events: stroke; }
 
   .node { cursor: pointer; touch-action: none; transition: opacity .18s; outline: none; }
-  .node circle.mark { stroke: var(--bg); stroke-width: 2; }
+  .node circle.mark { stroke: var(--halo); stroke-width: 2; }
   .node circle.halo { opacity: 0; fill: none; stroke-width: 2; transition: opacity .15s; pointer-events: none; }
   .node circle.hit { fill: transparent; }
   .node:hover circle.halo, .node:focus-visible circle.halo, .node.selected circle.halo { opacity: 1; }
-  .node text { pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round;
+  .node text { pointer-events: none; paint-order: stroke; stroke: var(--halo); stroke-width: 3.5px; stroke-linejoin: round;
                fill: var(--text-2); text-anchor: middle; }
   .node.hub text { fill: var(--text); font-weight: 600; }
   .node.child-label-hidden text { opacity: 0; }
@@ -92,44 +144,44 @@
   svg.focused .node:not(.lit) { opacity: .16; }
   svg.focused .edge:not(.lit) { opacity: .06; }
   svg.focused .edge.latent.lit { opacity: 1; stroke-width: 2.2; }
-  svg.focused .edge.tree.lit { stroke: #8b8f9a; }
-  svg.focused .region-hull:not(.lit) { opacity: .025; }
+  svg.focused .edge.tree.lit { stroke: var(--edge-lit); }
+  svg.focused .region-hull:not(.lit) { opacity: var(--hull-dim); }
   svg.focused .region-label:not(.lit) { opacity: .35; }
 
   .tooltip { position: fixed; z-index: 5; max-width: 280px; padding: 8px 11px; pointer-events: none; opacity: 0;
              background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 8px;
-             font-size: 13px; line-height: 1.45; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); transition: opacity .1s; }
+             font-size: 13px; line-height: 1.45; box-shadow: 0 8px 24px var(--shadow); transition: opacity .1s; }
   .tooltip.visible { opacity: 1; }
   .tooltip b { display: block; font-weight: 600; }
   .tooltip span { color: var(--text-2); }
 
   .detail { position: absolute; z-index: 3; top: 24px; right: 24px; width: 340px; max-height: calc(100% - 96px);
             display: flex; flex-direction: column; background: var(--panel-solid); border: 1px solid var(--line);
-            border-radius: 12px; box-shadow: 0 16px 40px rgba(0, 0, 0, .35); overflow: hidden;
+            border-radius: 12px; box-shadow: 0 16px 40px var(--shadow); overflow: hidden;
             transform: translateX(12px); opacity: 0; visibility: hidden; transition: opacity .16s, transform .16s, visibility .16s; }
   .detail.open { transform: none; opacity: 1; visibility: visible; }
   .detail-body { padding: 18px; overflow-y: auto; }
   .detail-region { display: flex; align-items: center; gap: 8px; padding-right: 32px; color: var(--text-2); font-size: 12px; }
-  .detail h2 { margin-top: 10px; font-size: 19px; line-height: 1.35; font-weight: 650; overflow-wrap: anywhere; }
+  .detail h2 { color: var(--heading); margin-top: 10px; font-size: 19px; line-height: 1.35; font-weight: 650; overflow-wrap: anywhere; }
   .detail-desc { margin-top: 8px; color: var(--text-2); font-size: 14px; line-height: 1.6; }
   .detail-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 14px 0 0; font-size: 12px; }
   .detail-meta dt { color: var(--text-3); }
   .detail-meta dd { margin: 0; color: var(--text-2); }
   .open-link { display: block; margin-top: 16px; padding: 8px 12px; border-radius: 8px; text-align: center; font-weight: 600;
-               font-size: 14px; color: #14151a; background: var(--text); }
-  .open-link:hover { background: #fff; text-decoration: none; }
+               font-size: 14px; color: var(--button-text); background: var(--button); }
+  .open-link:hover { background: var(--button-hover); text-decoration: none; }
   .close { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 6px; color: var(--text-3); font-size: 18px; line-height: 1; }
-  .close:hover { color: var(--text); background: rgba(255, 255, 255, .07); }
+  .close:hover { color: var(--text); background: var(--hover); }
   .relations { margin-top: 20px; }
   .relations h3 { font-size: 12px; font-weight: 600; color: var(--text-3); margin-bottom: 6px; }
   .relations ul { list-style: none; margin: 0; padding: 0; }
   .relations button { display: block; padding: 8px 10px; margin: 0 -10px; width: calc(100% + 20px); border-radius: 7px; text-align: left; }
-  .relations button:hover { background: rgba(255, 255, 255, .06); }
+  .relations button:hover { background: var(--hover); }
   .relations .rel-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; line-height: 1.4; }
   .relations .rel-reason { display: block; margin: 2px 0 0 18px; color: var(--text-2); font-size: 13px; line-height: 1.5; }
 
   .index { max-width: 1120px; margin: 0 auto; padding: 72px 24px 48px; }
-  .index > h2 { font-size: 26px; font-weight: 650; }
+  .index > h2 { color: var(--heading); font-size: 26px; font-weight: 650; }
   .index > p { color: var(--text-2); margin-top: 4px; }
   .index-grid { columns: 2; column-gap: 56px; margin-top: 32px; }
   .index-grid section { break-inside: avoid; padding-bottom: 32px; }
@@ -185,6 +237,7 @@
       <div class="profile-links">
         <a href="__GITHUB__">GitHub</a>
         <a href="__WEBSITE__">__WEBSITE_LABEL__</a>
+        <button class="theme-toggle" id="theme-toggle" type="button"></button>
       </div>
       <ul class="legend" id="legend" aria-label="按区域高亮"></ul>
     </div>
@@ -252,6 +305,8 @@ __LIST__
   data.nodes.forEach(function (n) {
     n.r = n.hub ? 9 + Math.min(n.deg, 12) * .5 : 4.5 + Math.min(n.deg, 5) * .7;
   });
+
+  function regionColor(r) { return "var(--r-" + r.id + ")"; }
 
   function isPortrait() { return window.innerWidth <= 860; }
 
@@ -382,7 +437,8 @@ __LIST__
 
   data.regions.forEach(function (r) {
     r.members = data.nodes.filter(function (n) { return n.region === r.id; });
-    r.hull = el("path", { "class": "region-hull", fill: r.color, stroke: r.color }, hullLayer);
+    r.hull = el("path", { "class": "region-hull" }, hullLayer);
+    r.hull.style.fill = r.hull.style.stroke = regionColor(r);
     r.label = el("text", { "class": "region-label" }, regionLabelLayer);
     r.labelName = el("tspan", { "class": "name" }, r.label);
     r.labelSub = el("tspan", { "class": "sub", dx: 8 }, r.label);
@@ -395,8 +451,8 @@ __LIST__
     e.path = el("path", { "class": cls }, edgeLayer);
     if (!e.tree) {
       e.gradient = el("linearGradient", { id: "edge-" + i, gradientUnits: "userSpaceOnUse" }, defs);
-      el("stop", { offset: "0%", "stop-color": regionById[e.a.region].color }, e.gradient);
-      el("stop", { offset: "100%", "stop-color": regionById[e.b.region].color }, e.gradient);
+      el("stop", { offset: "0%" }, e.gradient).style.stopColor = regionColor(regionById[e.a.region]);
+      el("stop", { offset: "100%" }, e.gradient).style.stopColor = regionColor(regionById[e.b.region]);
       e.path.setAttribute("stroke", "url(#edge-" + i + ")");
       e.hit = el("path", { "class": "edge-hit" }, hitLayer);
       e.hit.addEventListener("pointerenter", function (ev) { focusEdge(e, ev); });
@@ -407,15 +463,17 @@ __LIST__
   });
 
   data.nodes.forEach(function (n) {
-    var color = regionById[n.region].color;
+    var color = regionColor(regionById[n.region]);
     n.el = el("g", {
       "class": "node" + (n.hub ? " hub" : ""),
       tabindex: 0, role: "button",
       "aria-label": n.title + "，" + regionById[n.region].title
     }, nodeLayer);
-    n.halo = el("circle", { "class": "halo", r: n.r + 5, stroke: color }, n.el);
+    n.halo = el("circle", { "class": "halo", r: n.r + 5 }, n.el);
+    n.halo.style.stroke = color;
     n.hit = el("circle", { "class": "hit", r: Math.max(n.r + 8, 18) }, n.el);
-    n.mark = el("circle", { "class": "mark", r: n.r, fill: color }, n.el);
+    n.mark = el("circle", { "class": "mark", r: n.r }, n.el);
+    n.mark.style.fill = color;
     n.text = el("text", {}, n.el);
     n.text.textContent = n.title;
 
@@ -751,7 +809,7 @@ __LIST__
       b.type = "button";
       var t = node("span", "rel-title", undefined, b);
       var d = node("span", "dot", undefined, t);
-      d.style.setProperty("--c", regionById[item.node.region].color);
+      d.style.setProperty("--c", regionColor(regionById[item.node.region]));
       node("span", "", item.node.title, t);
       if (item.reason) node("span", "rel-reason", item.reason, b);
       b.addEventListener("click", function () { select(item.node.id); });
@@ -763,7 +821,7 @@ __LIST__
     detailBody.textContent = "";
     var head = node("div", "detail-region", undefined, detailBody);
     var dot = node("span", "dot", undefined, head);
-    dot.style.setProperty("--c", region.color);
+    dot.style.setProperty("--c", regionColor(region));
     node("span", "", region.title + " · " + region.subtitle, head);
     node("h2", "", n.title, detailBody);
     if (n.description) node("p", "detail-desc", n.description, detailBody);
@@ -826,7 +884,7 @@ __LIST__
     b.type = "button";
     b.setAttribute("aria-pressed", "false");
     var dot = node("span", "dot", undefined, b);
-    dot.style.setProperty("--c", r.color);
+    dot.style.setProperty("--c", regionColor(r));
     var text = node("span", "", undefined, b);
     node("strong", "", r.title, text);
     node("small", "", r.subtitle, text);
@@ -842,6 +900,27 @@ __LIST__
   function syncLegend() {
     data.regions.forEach(function (r) { r.button.setAttribute("aria-pressed", String(regionFocus === r.id)); });
   }
+
+  /* Theme */
+  var root = document.documentElement;
+  var themeToggle = document.getElementById("theme-toggle");
+  var themeColor = document.getElementById("theme-color");
+
+  function syncTheme() {
+    var latte = root.getAttribute("data-theme") === "latte";
+    themeToggle.textContent = latte ? "◐ 深色" : "◐ 浅色";
+    themeToggle.setAttribute("aria-label", latte ? "切换到深色配色" : "切换到浅色配色");
+    themeColor.setAttribute("content", latte ? "#a7d7d8" : "#14151a");
+  }
+
+  themeToggle.addEventListener("click", function () {
+    var latte = root.getAttribute("data-theme") !== "latte";
+    if (latte) root.setAttribute("data-theme", "latte"); else root.removeAttribute("data-theme");
+    try { localStorage.setItem("graph-theme", latte ? "latte" : "dark"); } catch (e) {}
+    if (location.search) history.replaceState(null, "", location.pathname + location.hash);
+    syncTheme();
+  });
+  syncTheme();
 
   /* Boot */
   function layout() {

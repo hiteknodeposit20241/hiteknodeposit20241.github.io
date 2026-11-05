@@ -42,7 +42,12 @@ gh workflow run pages.yml -R kzhou003/kzhou003.github.io
 
 ## 配色
 
-区域颜色已用校验脚本检查过：地图上相邻的区域都能分清，包括色盲视觉下。调整颜色或区域位置时，要重新检查相邻的两个区域。
+页面有两套配色，用左上角的按钮切换，选择会保存在浏览器里：
+
+- **深色**：默认配色，接近 Obsidian。
+- **Latte**：浅色，取自 [kuanzhou.online](https://kuanzhou.online/) 的配色。链接加上 `?theme=latte` 可以直接打开，比如 <https://kzhou003.github.io/?theme=latte>。
+
+每个区域在 `sites.json` 里有 `color`（深色）和 `colorLight`（Latte）两个颜色。两套颜色都用校验脚本检查过：地图上相邻的区域都能分清，包括色盲视觉下。调整颜色或区域位置时，要重新检查相邻的两个区域。
 
 ## License
 

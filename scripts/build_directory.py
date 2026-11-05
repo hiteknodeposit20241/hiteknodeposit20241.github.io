@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "sites.json"
 TEMPLATE = ROOT / "site" / "template.html"
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
-OTHER_REGION = {"id": "other", "title": "未分类", "subtitle": "尚未归类的站点", "color": "#8b8f9a"}
+OTHER_REGION = {"id": "other", "title": "未分类", "subtitle": "尚未归类的站点", "color": "#8b8f9a", "colorLight": "#5f6f76"}
 
 
 def public_repos():
@@ -108,7 +108,7 @@ def build_graph(config, repos):
                     "updated": hub["updated"],
                 })
         if len(nodes) > count:
-            regions.append({key: category[key] for key in ("id", "title", "subtitle", "color")})
+            regions.append({key: category[key] for key in ("id", "title", "subtitle", "color", "colorLight")})
 
     unsorted_repos = [
         repo for name, repo in repos.items() if repo["has_pages"] and name not in placed
@@ -148,10 +148,17 @@ def render_list(graph):
                 + f' · 更新于 {hub["updated"]}</p></li>'
             )
         sections.append(
-            f'<section><h3><span class="dot" style="--c:{region["color"]}"></span>{html.escape(region["title"])}'
+            f'<section><h3><span class="dot" style="--c:var(--r-{region["id"]})"></span>{html.escape(region["title"])}'
             f'<small>{html.escape(region["subtitle"])}</small></h3><ul>{"".join(items)}</ul></section>'
         )
     return "\n".join(sections)
+
+
+def region_vars(regions):
+    """Emit one CSS variable per region so both themes recolor the whole page."""
+    dark = "".join(f'--r-{r["id"]}:{r["color"]};' for r in regions)
+    light = "".join(f'--r-{r["id"]}:{r["colorLight"]};' for r in regions)
+    return f':root{{{dark}}}\n  :root[data-theme="latte"]{{{light}}}'
 
 
 def main():
@@ -169,6 +176,7 @@ def main():
         "__WEBSITE__": html.escape(author["website"], quote=True),
         "__WEBSITE_LABEL__": html.escape(author["website"].removeprefix("https://")),
         "__STATS__": f'{len(graph["nodes"])} 个节点 · {len(graph["links"])} 条关联',
+        "__REGION_VARS__": region_vars(graph["regions"]),
         "__LIST__": render_list(graph),
         "__DATA__": data,
     }.items():
